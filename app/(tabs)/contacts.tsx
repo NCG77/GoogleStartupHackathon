@@ -5,6 +5,7 @@ import {
   PrimaryButton,
   SecondaryButton,
 } from "@/components/design-system";
+import { useToast } from "@/components/feedback/ToastProvider";
 import {
   radius,
   spacing,
@@ -52,6 +53,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function GuardiansScreen() {
   const insets = useSafeAreaInsets();
   const { colors: c, elevation: elev } = useAppTheme();
+  const toast = useToast();
 
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -277,7 +279,11 @@ export default function GuardiansScreen() {
     } catch (error) {
       const message = (error as { message?: string }).message ?? "";
       if (/already connected/i.test(message)) {
-        Alert.alert("Already connected", `${guardian.name} is already your guardian.`);
+        toast.show({
+          tone: "warning",
+          title: "Already connected",
+          message: `${guardian.name} is already your guardian.`,
+        });
         return;
       }
       console.warn("Invite backend unavailable; sending plain SMS", error);

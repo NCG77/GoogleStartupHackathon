@@ -138,16 +138,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
 
     paddingVertical: spacing.sm,
-
-    shadowColor: "#059669",
-
-    shadowOffset: { width: 0, height: 4 },
-
-    shadowOpacity: 0.16,
-
-    shadowRadius: 10,
-
-    elevation: 3,
   },
 
   compact: {

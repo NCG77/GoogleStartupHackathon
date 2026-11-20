@@ -1,6 +1,5 @@
 import {
   DesignSearchBar,
-  GradientText,
   LiveMiniMap,
   QuickActionsGrid,
   SafetyScoreChip,
@@ -8,6 +7,7 @@ import {
   type QuickActionItem,
 } from "@/components/design-system";
 import { DestinationSearchSheet } from "@/components/destination/DestinationSearchSheet";
+import { SafeWalkHeroCard } from "@/components/safewalk/SafeWalkHeroCard";
 import { TourAnchor } from "@/components/tour/TourAnchor";
 import { auth } from "@/config/firebase";
 import type { DestinationPlace } from "@/core/destinationSearch";
@@ -20,18 +20,22 @@ import {
   typography,
 } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { isWithinMumbai } from "@/core/coverage";
+import { useMyOpenSafeWalks } from "@/hooks/useMyOpenSafeWalk";
 import { useProductTour } from "@/hooks/useProductTour";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -69,12 +73,22 @@ function weatherLabel(code: number): string {
 export default function HomeDashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colors: c, elevation: elev, gradients: grads } = useAppTheme();
+  const { colors: c, elevation: elev } = useAppTheme();
   const { maybeAutoStart, active, step, requestRemeasure } = useProductTour();
+  const { walks: openWalks } = useMyOpenSafeWalks();
   const scrollRef = React.useRef<ScrollView>(null);
+  // Content offsets of tour-highlighted sections, so the tour scrolls to real positions.
+  const sectionY = React.useRef<Record<string, number>>({});
+  const onSafeWalkLayout = (e: LayoutChangeEvent) => {
+    sectionY.current.safewalk = e.nativeEvent.layout.y;
+  };
+  const onActionsLayout = (e: LayoutChangeEvent) => {
+    sectionY.current.actions = e.nativeEvent.layout.y;
+  };
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [placeName, setPlaceName] = useState("Finding you…");
+  const [outOfArea, setOutOfArea] = useState(false);
   const [score, setScore] = useState(72);
   const [weather, setWeather] = useState<WeatherInfo>({
     label: "—",
@@ -144,6 +158,7 @@ export default function HomeDashboard() {
         accuracy: Location.Accuracy.Balanced,
       });
       const { latitude, longitude } = position.coords;
+      setOutOfArea(!isWithinMumbai(latitude, longitude));
 
       const places = await Location.reverseGeocodeAsync({
         latitude,
@@ -199,13 +214,20 @@ export default function HomeDashboard() {
   useEffect(() => {
     if (!active) return;
     const id = step.id;
+    const scrollToSection = (key: string, fallback: number) => {
+      const y = sectionY.current[key] ?? fallback;
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, y - spacing.xxl),
+        animated: true,
+      });
+    };
     const t = setTimeout(() => {
       if (id === "search") {
         scrollRef.current?.scrollTo({ y: 0, animated: true });
       } else if (id === "safewalk") {
-        scrollRef.current?.scrollTo({ y: 220, animated: true });
+        scrollToSection("safewalk", 220);
       } else if (id === "report") {
-        scrollRef.current?.scrollTo({ y: 360, animated: true });
+        scrollToSection("actions", 360);
       } else if (id === "heatmap" || id === "sos") {
         scrollRef.current?.scrollToEnd({ animated: true });
       }
@@ -236,21 +258,11 @@ export default function HomeDashboard() {
       {
         key: "route",
         label: "Safe Route",
-        description: "AI-ranked paths for lighting & crowd",
+        description: "Paths ranked for lighting & crowd",
         icon: "alt-route",
         tone: "primary",
-        size: "large",
+        size: "small",
         onPress: openDestinationSearch,
-      },
-      {
-        key: "walk",
-        label: "Safe Walk",
-        description: "Live share with your guardian",
-        icon: "directions-walk",
-        tone: "success",
-        size: "large",
-        tourId: "safewalk",
-        onPress: () => router.push("/(tabs)/safewalk" as never),
       },
       {
         key: "report",
@@ -267,16 +279,35 @@ export default function HomeDashboard() {
         label: "Nearby Police",
         description: "Stations on your map",
         icon: "local-police",
-        tone: "danger",
+        tone: "neutral",
         size: "small",
         onPress: () =>
           goMap({ showPoliceStations: "true", nearbyNonce: String(Date.now()) }),
+      },
+      {
+        key: "guardians",
+        label: "Guardians",
+        description: "People who know you’re safe",
+        icon: "people-outline",
+        tone: "neutral",
+        size: "small",
+        onPress: () => router.push("/contacts"),
       },
     ],
     [router, openDestinationSearch],
   );
 
+  const openWalk = openWalks[0] ?? null;
+
   const onDestinationSelect = (place: DestinationPlace) => {
+    if (!isWithinMumbai(place.coordinate.latitude, place.coordinate.longitude)) {
+      Alert.alert(
+        "Outside Coverage Area",
+        `"${place.title}" is outside SafeRoute's Mumbai coverage area. Safety routing is available within Mumbai only in this beta.`,
+        [{ text: "OK" }],
+      );
+      return;
+    }
     setSearch(place.title);
     router.push({
       pathname: "/navigate",
@@ -312,10 +343,9 @@ export default function HomeDashboard() {
           entering={FadeInDown.duration(motion.page)}
           style={styles.header}
         >
-          <GradientText
-            colors={[...grads.greeting]}
-            style={styles.greetingLine}
-          >{`${greetingLine},`}</GradientText>
+          <Text style={[styles.greetingLine, { color: c.textSecondary }]}>
+            {`${greetingLine},`}
+          </Text>
           <Text
             style={[styles.nameLine, { color: c.textPrimary }]}
             accessibilityRole="header"
@@ -365,11 +395,37 @@ export default function HomeDashboard() {
           </View>
         </Animated.View>
 
+        {outOfArea && (
+          <View
+            style={{
+              flexDirection: "row",
+              padding: spacing.md,
+              borderRadius: radius.md,
+              backgroundColor: c.surface,
+              borderColor: c.primary,
+              borderWidth: 1,
+              marginTop: spacing.sm,
+              marginBottom: spacing.xs,
+              alignItems: "center",
+            }}
+          >
+            <MaterialIcons name="info-outline" size={24} color={c.primary} />
+            <View style={{ flex: 1, marginLeft: spacing.sm }}>
+              <Text style={{ fontFamily: typography.fontFamily.semibold, color: c.textPrimary, fontSize: 14 }}>
+                SafeRoute is in Mumbai Beta
+              </Text>
+              <Text style={{ fontFamily: typography.fontFamily.regular, color: c.textSecondary, fontSize: 12, marginTop: 2 }}>
+                High-resolution safety scores are active in Mumbai. Join our waitlist for expansion to your city.
+              </Text>
+            </View>
+          </View>
+        )}
+
         <Animated.View
-          entering={FadeInDown.delay(70).duration(motion.normal)}
+          entering={FadeInDown.delay(motion.stagger).duration(motion.normal)}
           style={styles.searchBlock}
         >
-          <Text style={[styles.searchKicker, { color: c.primary }]}>
+          <Text style={[styles.searchKicker, { color: c.textTertiary }]}>
             Where to?
           </Text>
           <TourAnchor id="search">
@@ -387,7 +443,25 @@ export default function HomeDashboard() {
           </TourAnchor>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(120).duration(motion.normal)}>
+        <Animated.View
+          entering={FadeInDown.delay(motion.stagger * 2).duration(motion.normal)}
+          style={styles.section}
+          onLayout={onSafeWalkLayout}
+        >
+          <TourAnchor id="safewalk">
+            <SafeWalkHeroCard
+              walk={openWalk}
+              onStart={() => router.push("/(tabs)/safewalk" as never)}
+              onOpen={() => router.push("/(tabs)/safewalk" as never)}
+            />
+          </TourAnchor>
+        </Animated.View>
+
+        <Animated.View
+          entering={FadeInDown.delay(motion.stagger * 3).duration(motion.normal)}
+          style={styles.section}
+          onLayout={onActionsLayout}
+        >
           <Text style={[styles.sectionTitle, { color: c.textPrimary }]}>
             Quick actions
           </Text>
@@ -395,57 +469,8 @@ export default function HomeDashboard() {
         </Animated.View>
 
         <Animated.View
-          entering={FadeInDown.delay(160).duration(motion.normal)}
-          style={styles.guardiansBlock}
-        >
-          <Pressable
-            onPress={() => router.push("/contacts")}
-            style={({ pressed }) => [
-              styles.guardiansCard,
-              {
-                backgroundColor: c.surface,
-                borderColor: c.border,
-                ...elev.card,
-              },
-              pressed && { transform: [{ scale: 0.98 }] },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Trusted Guardians"
-          >
-            <View
-              style={[
-                styles.guardiansIcon,
-                { backgroundColor: c.primaryContainer },
-              ]}
-            >
-              <MaterialIcons
-                name="people-outline"
-                size={22}
-                color={c.primary}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.guardiansTitle, { color: c.textPrimary }]}>
-                Trusted Guardians
-              </Text>
-              <Text
-                style={[styles.guardiansSub, { color: c.textSecondary }]}
-                numberOfLines={1}
-              >
-                Invite someone who always knows you’re safe
-              </Text>
-            </View>
-            <MaterialIcons
-              name="chevron-right"
-              size={22}
-              color={c.textTertiary}
-            />
-          </Pressable>
-        </Animated.View>
-
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(motion.normal)}
-          style={styles.heatBlock}
+          entering={FadeInDown.delay(motion.stagger * 4).duration(motion.normal)}
+          style={styles.section}
         >
           <LiveMiniMap onPress={() => goMap()} />
         </Animated.View>
@@ -483,32 +508,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
     marginBottom: spacing.lg,
   },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  brandWordmark: {
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.size.title,
-    letterSpacing: -0.3,
-  },
   greetingLine: {
-    fontFamily: typography.fontFamily.semibold,
+    fontFamily: typography.fontFamily.medium,
     fontSize: typography.size.body,
     lineHeight: typography.lineHeight.body,
-    letterSpacing: 0.2,
   },
   nameLine: {
     fontFamily: typography.fontFamily.bold,
-    fontSize: typography.size.hero,
-    lineHeight: typography.lineHeight.hero,
+    fontSize: typography.size.headline,
+    lineHeight: typography.lineHeight.headline,
     letterSpacing: typography.tracking.tight,
-    marginTop: -2,
   },
   metaRow: {
     flexDirection: "row",
@@ -551,51 +563,23 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   searchBlock: {
-    marginBottom: spacing.xl,
     gap: spacing.sm,
   },
   searchKicker: {
     fontFamily: typography.fontFamily.semibold,
     fontSize: typography.size.caption,
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
     textTransform: "uppercase",
+  },
+  section: {
+    marginTop: spacing.xl,
   },
   sectionTitle: {
     fontFamily: typography.fontFamily.semibold,
-    fontSize: typography.size.display,
-    lineHeight: typography.lineHeight.display,
+    fontSize: typography.size.title,
+    lineHeight: typography.lineHeight.title,
     marginBottom: spacing.md,
     letterSpacing: typography.tracking.title,
-  },
-  guardiansBlock: {
-    marginTop: spacing.xl,
-  },
-  guardiansCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  guardiansIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  guardiansTitle: {
-    fontFamily: typography.fontFamily.semibold,
-    fontSize: typography.size.body,
-  },
-  guardiansSub: {
-    fontFamily: typography.fontFamily.regular,
-    fontSize: typography.size.caption,
-    marginTop: 2,
-  },
-  heatBlock: {
-    marginTop: spacing.xl,
   },
   sosFab: {
     position: "absolute",

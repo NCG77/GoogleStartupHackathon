@@ -1,5 +1,6 @@
 import { SafetyScoreChip } from "@/components/design-system/SafetyScoreChip";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
+import { NearestPoliceRow } from "@/components/navigation/NearestPoliceRow";
 import {
   motion,
   radius,
@@ -33,13 +34,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Dark chrome for map readability — no light elevation (avoids white shadow boxes). */
 export const navDark = {
-  glass: "rgba(15, 23, 42, 0.94)",
-  glassSoft: "rgba(30, 41, 59, 0.92)",
-  border: "rgba(255, 255, 255, 0.14)",
-  text: "#F9FAFB",
-  muted: "#9CA3AF",
-  success: "#34D399",
-  danger: "#F87171",
+  glass: "rgba(17, 17, 19, 0.94)",
+  glassSoft: "rgba(28, 28, 32, 0.92)",
+  border: "rgba(255, 255, 255, 0.12)",
+  text: "#F5F3F2",
+  muted: "#A9A6AD",
+  success: "#4CC38A",
+  danger: "#F2564B",
+  warning: "#F0B44C",
+  info: "#E58A9C",
 } as const;
 
 export type LiveNavGuardian = {
@@ -60,13 +63,23 @@ const ALERT_TONES: Record<
   LiveNavRouteAlert["tone"],
   { color: string; icon: React.ComponentProps<typeof MaterialIcons>["name"] }
 > = {
-  warning: { color: "#FBBF24", icon: "wrong-location" },
-  info: { color: "#60A5FA", icon: "alt-route" },
+  warning: { color: navDark.warning, icon: "wrong-location" },
+  info: { color: navDark.info, icon: "alt-route" },
   success: { color: navDark.success, icon: "check-circle" },
+};
+
+export type LiveNavNearestPolice = {
+  name: string;
+  distanceM: number;
+  phone?: string | null;
 };
 
 export type LiveNavigationHUDProps = {
   visible: boolean;
+  /** Nearest police station strip under the ETA row. */
+  nearestPolice?: LiveNavNearestPolice | null;
+  onNavigateToPolice?: () => void;
+  onCallPolice?: () => void;
   /** Current turn instruction (plain text) */
   instruction: string;
   /** Distance to next maneuver, e.g. "120 m" */
@@ -142,6 +155,9 @@ function VibrationIndicator({ active }: { active: boolean }) {
  */
 export function LiveNavigationHUD({
   visible,
+  nearestPolice = null,
+  onNavigateToPolice,
+  onCallPolice,
   instruction,
   maneuverDistance,
   maneuverIcon = "straight",
@@ -218,6 +234,16 @@ export function LiveNavigationHUD({
             <VibrationIndicator active={vibrationActive || safetyScore < 55} />
           </View>
         </View>
+
+        {nearestPolice && onNavigateToPolice ? (
+          <NearestPoliceRow
+            name={nearestPolice.name}
+            distanceM={nearestPolice.distanceM}
+            phone={nearestPolice.phone}
+            onNavigate={onNavigateToPolice}
+            onCall={onCallPolice}
+          />
+        ) : null}
 
         {routeAlert ? (
           <Animated.View

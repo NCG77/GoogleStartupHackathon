@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SafeRoute — Community Report Moderation</title>
+    <style>
+      :root {
+        --primary: #0d9488;
+        --primary-dark: #0f766e;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --danger: #ef4444;
+        --success: #10b981;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 32px 20px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      h1 { margin: 0; font-size: 24px; color: var(--primary-dark); }
+      .badge {
+        font-size: 12px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .badge-pending { background: #fef3c7; color: #b45309; }
+      .badge-verified { background: #d1fae5; color: #047857; }
+      .badge-rejected { background: #fee2e2; color: #b91c1c; }
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .category { font-weight: 600; font-size: 16px; }
+      .meta { font-size: 13px; color: var(--text-sub); margin-bottom: 8px; }
+      .note { font-size: 14px; margin-bottom: 14px; line-height: 1.4; }
+      .actions { display: flex; gap: 10px; }
+      button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      button:hover { opacity: 0.9; }
+      .btn-verify { background: var(--success); color: white; }
+      .btn-reject { background: var(--danger); color: white; }
+      .empty { text-align: center; color: var(--text-sub); padding: 48px; }
+      #auth-box {
+        background: white;
+        padding: 24px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        max-width: 360px;
+        margin: 40px auto;
+        text-align: center;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0 16px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div>
+          <h1>SafeRoute Moderation</h1>
+          <div style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">
+            Community incident reviews and trust adjustment portal
+          </div>
+        </div>
+        <div id="user-status" style="font-size: 13px;">Not signed in</div>
+      </header>
+
+      <div id="auth-section">
+        <div id="auth-box">
+          <h2 style="font-size: 18px; margin-top: 0;">Admin Sign-In</h2>
+          <input type="email" id="email" placeholder="admin@saferoute.app" />
+          <input type="password" id="password" placeholder="Password" />
+          <button id="btn-login" style="width: 100%; background: var(--primary); color: white;">Sign In</button>
+        </div>
+      </div>
+
+      <div id="content-section" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="font-size: 18px; margin: 0;">Community Reports</h2>
+          <button id="btn-refresh" style="background: #e2e8f0; color: var(--text);">Refresh</button>
+        </div>
+        <div id="reports-list"></div>
+      </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+      import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+      import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
+
+      // Reads configuration dynamically or uses hosting default
+      const app = initializeApp({
+        apiKey: window.FIREBASE_API_KEY || "AIzaSy...",
+        authDomain: "saferoute-8bc4f.firebaseapp.com",
+        projectId: "saferoute-8bc4f"
+      });
+
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const functions = getFunctions(app, "asia-south1");
+      const moderateReport = httpsCallable(functions, "moderateReport");
+
+      const authSec = document.getElementById("auth-section");
+      const contentSec = document.getElementById("content-section");
+      const userStatus = document.getElementById("user-status");
+      const reportsList = document.getElementById("reports-list");
+
+      document.getElementById("btn-login").onclick = async () => {
+        const e = document.getElementById("email").value;
+        const p = document.getElementById("password").value;
+        try {
+          await signInWithEmailAndPassword(auth, e, p);
+        } catch (err) {
+          alert("Sign-in failed: " + err.message);
+        }
+      };
+
+      document.getElementById("btn-refresh").onclick = loadReports;
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          authSec.style.display = "none";
+          contentSec.style.display = "block";
+          userStatus.innerHTML = `${user.email} <button id="btn-logout" style="margin-left: 8px; padding: 2px 8px; font-size: 11px;">Logout</button>`;
+          document.getElementById("btn-logout").onclick = () => signOut(auth);
+          loadReports();
+        } else {
+          authSec.style.display = "block";
+          contentSec.style.display = "none";
+          userStatus.textContent = "Not signed in";
+        }
+      });
+
+      async function loadReports() {
+        reportsList.innerHTML = "<p>Loading reports...</p>";
+        try {
+          const q = query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(50));
+          const snap = await getDocs(q);
+          if (snap.empty) {
+            reportsList.innerHTML = '<div class="empty">No community reports pending review.</div>';
+            return;
+          }
+          reportsList.innerHTML = "";
+          snap.forEach((doc) => {
+            const data = doc.data();
+            const card = document.createElement("div");
+            card.className = "card";
+            const statusClass = `badge-${data.status || 'pending'}`;
+            card.innerHTML = `
+              <div class="card-header">
+                <span class="category">${escapeHtml(data.category || 'Incident')}</span>
+                <span class="badge ${statusClass}">${escapeHtml(data.status || 'Pending')}</span>
+              </div>
+              <div class="meta">
+                Severity: <strong>${data.severity || 1}/5</strong> · 
+                Location: ${data.latitude ? data.latitude.toFixed(5) : 0}, ${data.longitude ? data.longitude.toFixed(5) : 0} · 
+                ${data.createdAt?.toDate ? data.createdAt.toDate().toLocaleString() : 'Just now'}
+              </div>
+              <div class="note">${escapeHtml(data.note || 'No description provided')}</div>
+              <div class="actions">
+                <button class="btn-verify" data-id="${doc.id}">Verify & Approve (+8 Trust)</button>
+                <button class="btn-reject" data-id="${doc.id}">Reject (-15 Penalty)</button>
+              </div>
+            `;
+            reportsList.appendChild(card);
+          });
+
+          document.querySelectorAll(".btn-verify").forEach((b) => {
+            b.onclick = () => handleModerate(b.getAttribute("data-id"), "verified");
+          });
+          document.querySelectorAll(".btn-reject").forEach((b) => {
+            b.onclick = () => handleModerate(b.getAttribute("data-id"), "rejected");
+          });
+        } catch (err) {
+          reportsList.innerHTML = `<p style="color: red;">Error loading reports: ${err.message}</p>`;
+        }
+      }
+
+      async function handleModerate(reportId, status) {
+        if (!confirm(`Are you sure you want to mark report ${reportId} as ${status}?`)) return;
+        try {
+          await moderateReport({ reportId, status });
+          alert(`Report marked as ${status}.`);
+          loadReports();
+        } catch (err) {
+          alert("Moderation action failed: " + err.message);
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+      }
+    </script>
+  </body>
+</html>

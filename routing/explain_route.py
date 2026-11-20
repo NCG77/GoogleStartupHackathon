@@ -237,8 +237,25 @@ def build_explanation(
         )
 
     conf = estimate_confidence_from_path_stats(stats)
+    try:
+        from .gemini_explainer import RouteExplanationInputs, generate_gemini_explanation
+        exp_input = RouteExplanationInputs(
+            lighting_score=float(stats.get("mean_lighting", 0.5) or 0.5),
+            police_dist_m=float(stats.get("mean_police_dist", 800.0) or 800.0),
+            crime_score=float(stats.get("mean_crime", 40.0) or 40.0),
+            entrapment_score=float(stats.get("mean_entrapment", 0.7) or 0.7),
+            prospect_score=float(stats.get("mean_prospect", 0.6) or 0.6),
+            time_of_day_hour=float(stats.get("hour") if stats.get("hour") is not None else 21.0),
+            delta_min_vs_fastest=float(vs_fastest_eta_delta_min or 0.0),
+            safety_delta_vs_fastest=float(stats.get("mean_safety", 50.0) - 40.0),
+        )
+        summary = generate_gemini_explanation(exp_input)
+    except Exception:
+        summary = None
+
     return {
         "title": "Why we recommended it",
+        "summary": summary,
         "reasons": reasons[:5],
         "stats": {
             "lighting_pct": lighting_pct,

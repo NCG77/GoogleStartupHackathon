@@ -37,7 +37,7 @@ export type SegmentedControlProps<T extends string> = {
 
 /**
 
- * Pill segmented control. Selected segment is a solid indigo fill.
+ * Pill segmented control. Selected segment is a solid brand fill.
 
  */
 

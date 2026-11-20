@@ -86,7 +86,7 @@ export async function startSafetyTracking(
         foregroundService: {
           notificationTitle: "SafeRoute live safety tracking",
           notificationBody: "Your guardian can see your latest location.",
-          notificationColor: "#4F46E5",
+          notificationColor: "#800020",
         },
       });
       background = true;
@@ -98,6 +98,28 @@ export async function startSafetyTracking(
 }
 
 export async function stopSafetyTracking(): Promise<void> {
+  await haltSafetyTracking();
+}
+
+/**
+ * Stops tracking only if it belongs to this session, so ending a walk can't
+ * cut off an SOS that started sharing afterwards.
+ */
+export async function stopSafetyTrackingFor(
+  collection: TrackingPayload["collection"],
+  sessionId: string,
+): Promise<void> {
+  const raw = await AsyncStorage.getItem(TRACKING_PAYLOAD_KEY);
+  if (raw) {
+    try {
+      const payload = JSON.parse(raw) as TrackingPayload;
+      if (payload.collection !== collection || payload.sessionId !== sessionId) {
+        return;
+      }
+    } catch {
+      // Unreadable payload: fall through and halt.
+    }
+  }
   await haltSafetyTracking();
 }
 

@@ -1,19 +1,22 @@
 """
-Feature-importance chart for the SafeRoute XGBoost model.
+Feature importance for SafeRoute Scoring Engine.
 
-  python -m ml.feature_importance
+The legacy XGBoost model and feature importance charts have been retired.
+Safety Score v2 is a transparent rule-based weighted geometric mean:
+  - Lighting (35%)
+  - Police proximity via continuous exponential decay (35%)
+  - Regional crime rates (30%)
+  - Optional streetscape features: Entrapment (16%), Prospect (10%)
 """
-from __future__ import annotations
+import sys
 
-import json
-from pathlib import Path
+def main():
+    print("Legacy XGBoost feature importance plot is retired.")
+    print("Safety Score v2 feature weights are transparent and documented in ml/predict.py.")
+    sys.exit(0)
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-
-from .predict import FEATURE_COLS, MODEL_PATH, load_model
+if __name__ == "__main__":
+    main()
 
 ML_DIR = Path(__file__).resolve().parent
 METRICS_PATH = ML_DIR / "metrics.json"

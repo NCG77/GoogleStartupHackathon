@@ -1,6 +1,7 @@
 /**
- * SafeRoute 2.0 Visual Identity — Inter typography, soft indigo palette, layered elevation.
- * Light + dark (indigo-night) schemes share the same token keys.
+ * SafeRoute Visual Identity — deep burgundy, near-black and warm white, Inter typography.
+ * Light + dark schemes share the same token keys.
+ * Burgundy is the brand; danger / SOS stays a distinct red so emergencies never read as branding.
  */
 
 export type ColorTokens = {
@@ -61,123 +62,123 @@ export type ColorTokens = {
 };
 
 /**
- * Light — soft indigo on near-white.
+ * Light — burgundy on warm off-white.
+ * Body text on background/surface stays ≥ 4.5:1; #929098 is reserved for tertiary text and icons.
  */
 export const lightColors: ColorTokens = {
-  primary: "#4F46E5",
-  primaryPressed: "#4338CA",
-  primaryContainer: "#EEF2FF",
-  primaryOnContainer: "#312E81",
-  secondary: "#2563EB",
-  secondaryContainer: "#DBEAFE",
+  primary: "#800020",
+  primaryPressed: "#66001A",
+  primaryContainer: "#F5E6E9",
+  primaryOnContainer: "#4A0E1C",
+  secondary: "#4A0E1C",
+  secondaryContainer: "#EFE4E6",
 
-  accent: "#7C3AED",
-  accentContainer: "#F3E8FF",
+  accent: "#9E3A52",
+  accentContainer: "#F5E6E9",
 
-  success: "#10B981",
-  successContainer: "#D1FAE5",
-  successText: "#059669",
-  warning: "#F59E0B",
-  warningContainer: "#FEF3C7",
-  danger: "#EF4444",
-  dangerContainer: "#FEE2E2",
-  dangerPressed: "#DC2626",
-  errorText: "#DC2626",
+  success: "#2F8F5B",
+  successContainer: "#E4F2EA",
+  successText: "#1F6B43",
+  warning: "#C77700",
+  warningContainer: "#FBF0DC",
+  danger: "#D92D20",
+  dangerContainer: "#FDE8E6",
+  dangerPressed: "#B42318",
+  errorText: "#B42318",
 
-  background: "#FAFBFD",
+  background: "#F7F5F4",
   surface: "#FFFFFF",
   surfaceElevated: "#FFFFFF",
-  surfaceVariant: "#F1F5F9",
-  surfaceGlass: "rgba(255, 255, 255, 0.88)",
+  surfaceVariant: "#EFECEA",
+  surfaceGlass: "rgba(255, 255, 255, 0.96)",
 
-  textPrimary: "#0F172A",
-  textSecondary: "#64748B",
-  textLabel: "#475569",
-  textTertiary: "#94A3B8",
+  textPrimary: "#111113",
+  textSecondary: "#66646B",
+  textLabel: "#3D3B41",
+  textTertiary: "#929098",
   textOnPrimary: "#FFFFFF",
   textOnDanger: "#FFFFFF",
-  textDisabled: "#CBD5E1",
-  textLink: "#4F46E5",
+  textDisabled: "#C9C6C4",
+  textLink: "#800020",
 
-  charcoal: "#0F172A",
-  border: "#E2E8F0",
-  borderFocus: "#4F46E5",
-  divider: "#E2E8F0",
-  overlay: "rgba(15, 23, 42, 0.45)",
-  scrim: "rgba(15, 23, 42, 0.32)",
+  charcoal: "#111113",
+  border: "#E8E3E1",
+  borderFocus: "#800020",
+  divider: "#ECE8E6",
+  overlay: "rgba(17, 17, 19, 0.48)",
+  scrim: "rgba(17, 17, 19, 0.32)",
 
-  heroWash: "#EEF2FF",
-  indigoGlow: "rgba(79, 70, 229, 0.18)",
-  headerWash: ["#EEF2FF", "#FAFBFD"] as const,
+  heroWash: "#F5E6E9",
+  indigoGlow: "rgba(128, 0, 32, 0.12)",
+  headerWash: ["#F3EAEB", "#F7F5F4"] as const,
 
-  info: "#2563EB",
-  textLight: "#FAFBFD",
-  backgroundLight: "#FAFBFD",
-  backgroundSelected: "#EEF2FF",
-  lightGray: "#F1F5F9",
+  info: "#3B5B8C",
+  textLight: "#F7F5F4",
+  backgroundLight: "#F7F5F4",
+  backgroundSelected: "#F5E6E9",
+  lightGray: "#EFECEA",
   cardBackground: "#FFFFFF",
-  primaryLight: "#EEF2FF",
+  primaryLight: "#F5E6E9",
 };
 
 /**
- * Dark — indigo-night (Material tonal surfaces + cool navy canvas).
- * Canvas #0B0F1A · cards #151A2D / #1C2238 · accent #818CF8 · text #E8EAF6 / #A6ACD6
- * Keeps SafeRoute’s indigo brand without white cards on a dark scrub.
+ * Dark — near-black canvas with charcoal surfaces.
+ * Primary is a lifted burgundy so it keeps contrast on #111113 and under white labels.
  */
 export const darkColors: ColorTokens = {
-  primary: "#818CF8",
-  primaryPressed: "#A5B4FC",
-  primaryContainer: "#1E1B4B",
-  primaryOnContainer: "#C7D2FE",
-  secondary: "#60A5FA",
-  secondaryContainer: "#1E3A5F",
+  primary: "#B3364F",
+  primaryPressed: "#9A2B43",
+  primaryContainer: "#3A0F1B",
+  primaryOnContainer: "#F2C5CF",
+  secondary: "#D9A3AF",
+  secondaryContainer: "#2E1A20",
 
-  accent: "#A78BFA",
-  accentContainer: "#2E1065",
+  accent: "#E08A9E",
+  accentContainer: "#3A0F1B",
 
-  success: "#34D399",
-  successContainer: "#064E3B",
-  successText: "#6EE7B7",
-  warning: "#FBBF24",
-  warningContainer: "#78350F",
-  danger: "#F87171",
-  dangerContainer: "#7F1D1D",
-  dangerPressed: "#EF4444",
-  errorText: "#FCA5A5",
+  success: "#4CC38A",
+  successContainer: "#133626",
+  successText: "#7FD8A9",
+  warning: "#F0B44C",
+  warningContainer: "#3D2A0C",
+  danger: "#F2564B",
+  dangerContainer: "#4A1512",
+  dangerPressed: "#E0453A",
+  errorText: "#FF9A91",
 
-  background: "#0B0F1A",
-  surface: "#151A2D",
-  surfaceElevated: "#1C2238",
-  surfaceVariant: "#1F2540",
-  surfaceGlass: "rgba(21, 26, 45, 0.94)",
+  background: "#111113",
+  surface: "#1C1C20",
+  surfaceElevated: "#242429",
+  surfaceVariant: "#26262B",
+  surfaceGlass: "rgba(28, 28, 32, 0.97)",
 
-  textPrimary: "#E8EAF6",
-  textSecondary: "#A6ACD6",
-  textLabel: "#C4C9E8",
-  textTertiary: "#7B82A8",
-  textOnPrimary: "#0B0F1A",
+  textPrimary: "#F5F3F2",
+  textSecondary: "#B4B1B8",
+  textLabel: "#D6D3D9",
+  textTertiary: "#929098",
+  textOnPrimary: "#FFFFFF",
   textOnDanger: "#FFFFFF",
-  textDisabled: "#4A5168",
-  textLink: "#A5B4FC",
+  textDisabled: "#4D4B52",
+  textLink: "#E58A9C",
 
-  charcoal: "#E8EAF6",
-  border: "#2A3150",
-  borderFocus: "#818CF8",
-  divider: "#2A3150",
-  overlay: "rgba(0, 0, 0, 0.55)",
-  scrim: "rgba(0, 0, 0, 0.45)",
+  charcoal: "#F5F3F2",
+  border: "#2E2D33",
+  borderFocus: "#C9536B",
+  divider: "#2A292E",
+  overlay: "rgba(0, 0, 0, 0.6)",
+  scrim: "rgba(0, 0, 0, 0.5)",
 
-  heroWash: "#1E1B4B",
-  indigoGlow: "rgba(129, 140, 248, 0.22)",
-  headerWash: ["#151A2D", "#0B0F1A"] as const,
+  heroWash: "#2A0E16",
+  indigoGlow: "rgba(179, 54, 79, 0.2)",
+  headerWash: ["#1C1C20", "#111113"] as const,
 
-  info: "#60A5FA",
-  textLight: "#E8EAF6",
-  backgroundLight: "#0B0F1A",
-  backgroundSelected: "#1E1B4B",
-  lightGray: "#1F2540",
-  cardBackground: "#151A2D",
-  primaryLight: "#1E1B4B",
+  info: "#8FA8D6",
+  textLight: "#F5F3F2",
+  backgroundLight: "#111113",
+  backgroundSelected: "#3A0F1B",
+  lightGray: "#26262B",
+  cardBackground: "#1C1C20",
+  primaryLight: "#3A0F1B",
 };
 
 /** @deprecated Prefer useAppTheme().colors — defaults to light for StyleSheet modules */
@@ -187,39 +188,42 @@ export function paletteFor(scheme: "light" | "dark"): ColorTokens {
   return scheme === "dark" ? darkColors : lightColors;
 }
 
-/** Soft multi-stop fills — never plain solid CTAs */
+/**
+ * Restrained fills. Brand gradients are near-flat burgundy (a hint of depth, not a rainbow);
+ * icon tiles are flat tonal containers.
+ */
 export const lightGradients = {
-  primaryButton: ["#5B5CFF", "#3B82F6"] as const,
-  safetyBadge: ["#10B981", "#34D399"] as const,
-  safetyMid: ["#F59E0B", "#FBBF24"] as const,
-  safetyHigh: ["#EF4444", "#F43F5E"] as const,
-  sos: ["#F43F5E", "#EF4444"] as const,
-  navActive: ["#4F46E5", "#2563EB"] as const,
-  greeting: ["#312E81", "#4F46E5"] as const,
-  important: ["#4F46E5", "#7C3AED"] as const,
-  iconPrimary: ["#EEF2FF", "#E0E7FF"] as const,
-  iconSuccess: ["#D1FAE5", "#A7F3D0"] as const,
-  iconWarning: ["#FEF3C7", "#FDE68A"] as const,
-  iconDanger: ["#FEE2E2", "#FECACA"] as const,
-  iconAccent: ["#F3E8FF", "#E9D5FF"] as const,
-  header: ["#EEF2FF", "#FAFBFD"] as const,
+  primaryButton: ["#8C0A2C", "#6E001B"] as const,
+  safetyBadge: ["#2F8F5B", "#3FA26C"] as const,
+  safetyMid: ["#C77700", "#D98E1C"] as const,
+  safetyHigh: ["#D92D20", "#E5483C"] as const,
+  sos: ["#E0352B", "#C21F16"] as const,
+  navActive: ["#800020", "#800020"] as const,
+  greeting: ["#4A0E1C", "#800020"] as const,
+  important: ["#800020", "#4A0E1C"] as const,
+  iconPrimary: ["#F5E6E9", "#F5E6E9"] as const,
+  iconSuccess: ["#E4F2EA", "#E4F2EA"] as const,
+  iconWarning: ["#FBF0DC", "#FBF0DC"] as const,
+  iconDanger: ["#FDE8E6", "#FDE8E6"] as const,
+  iconAccent: ["#EFECEA", "#EFECEA"] as const,
+  header: ["#F3EAEB", "#F7F5F4"] as const,
 } as const;
 
 export const darkGradients = {
-  primaryButton: ["#818CF8", "#6366F1"] as const,
-  safetyBadge: ["#059669", "#34D399"] as const,
-  safetyMid: ["#D97706", "#FBBF24"] as const,
-  safetyHigh: ["#DC2626", "#F87171"] as const,
-  sos: ["#F43F5E", "#EF4444"] as const,
-  navActive: ["#818CF8", "#60A5FA"] as const,
-  greeting: ["#A5B4FC", "#818CF8"] as const,
-  important: ["#818CF8", "#A78BFA"] as const,
-  iconPrimary: ["#1E1B4B", "#312E81"] as const,
-  iconSuccess: ["#064E3B", "#065F46"] as const,
-  iconWarning: ["#78350F", "#92400E"] as const,
-  iconDanger: ["#7F1D1D", "#991B1B"] as const,
-  iconAccent: ["#2E1065", "#4C1D95"] as const,
-  header: ["#151A2D", "#0B0F1A"] as const,
+  primaryButton: ["#B3364F", "#8E2239"] as const,
+  safetyBadge: ["#2F8F5B", "#4CC38A"] as const,
+  safetyMid: ["#B86E00", "#F0B44C"] as const,
+  safetyHigh: ["#C8281C", "#F2564B"] as const,
+  sos: ["#E0352B", "#C21F16"] as const,
+  navActive: ["#B3364F", "#B3364F"] as const,
+  greeting: ["#F2C5CF", "#E58A9C"] as const,
+  important: ["#B3364F", "#7A1A2F"] as const,
+  iconPrimary: ["#3A0F1B", "#3A0F1B"] as const,
+  iconSuccess: ["#133626", "#133626"] as const,
+  iconWarning: ["#3D2A0C", "#3D2A0C"] as const,
+  iconDanger: ["#4A1512", "#4A1512"] as const,
+  iconAccent: ["#26262B", "#26262B"] as const,
+  header: ["#1C1C20", "#111113"] as const,
 } as const;
 
 export const gradients = lightGradients;
@@ -290,7 +294,7 @@ export const typography = {
   },
 } as const;
 
-/** Soft layered shadows — no harsh edges */
+/** Soft, neutral shadows — borders carry most of the separation */
 export const elevation = {
   none: {
     shadowColor: "transparent",
@@ -300,35 +304,35 @@ export const elevation = {
     elevation: 0,
   },
   card: {
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowColor: "#111113",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
   cardLift: {
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
-    elevation: 8,
-  },
-  floating: {
-    shadowColor: "#4F46E5",
+    shadowColor: "#111113",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+  floating: {
+    shadowColor: "#111113",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
     shadowRadius: 20,
     elevation: 6,
   },
   fab: {
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 10 },
+    shadowColor: "#111113",
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.14,
-    shadowRadius: 20,
+    shadowRadius: 18,
     elevation: 8,
   },
   sheet: {
-    shadowColor: "#0F172A",
+    shadowColor: "#111113",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -336,27 +340,27 @@ export const elevation = {
   },
 } as const;
 
-/** Dark mode: soft indigo glow instead of muddy black shadows */
+/** Dark mode: plain black shadows; surfaces separate by tone and hairline borders */
 export const elevationDark = {
   none: elevation.none,
   card: {
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 3,
+    elevation: 2,
   },
   cardLift: {
-    shadowColor: "#818CF8",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.4,
     shadowRadius: 18,
-    elevation: 8,
+    elevation: 6,
   },
   floating: {
-    shadowColor: "#818CF8",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.4,
     shadowRadius: 20,
     elevation: 6,
   },
@@ -393,18 +397,26 @@ export function tabContentBottomInset(safeBottom: number): number {
   return touch.tabBarHeight + floatBottom + spacing.sm;
 }
 
-/** Micro-motion window: 180–300ms */
+/** Micro-motion window: 150–300ms; screen-level transitions up to ~400ms */
 export const motion = {
+  micro: 150,
   fast: 180,
   normal: 220,
   slow: 280,
   page: 220,
-  stagger: 80,
+  screen: 360,
+  stagger: 60,
   pressScale: 0.97,
-  cardLift: -6,
-  iconActive: 1.15,
+  pressScaleCard: 0.985,
+  cardLift: -2,
+  iconActive: 1.08,
   sosBreath: 2000,
   unreadPulse: 3000,
+  toastIn: 260,
+  toastOut: 200,
+  toastVisibleMs: 3600,
+  /** Spring for press feedback — settles quickly without bounce */
+  pressSpring: { damping: 18, stiffness: 320, mass: 0.6 },
 } as const;
 
 export function safetyTone(score: number): {

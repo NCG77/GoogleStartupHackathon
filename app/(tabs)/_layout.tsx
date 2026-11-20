@@ -17,7 +17,8 @@ import {
 import type { Theme } from "@react-navigation/native";
 import { Redirect, Tabs } from "expo-router";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, type ColorValue } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const unstable_settings = {
@@ -28,7 +29,7 @@ function AlertsTabIcon({
   color,
   focused,
 }: {
-  color: string;
+  color: ColorValue;
   focused: boolean;
 }) {
   const { hasUnread } = useAlertsBadge();
@@ -75,6 +76,7 @@ export default function TabsLayout() {
   const floatBottom = Math.max(insets.bottom, spacing.sm);
   const barHeight = touch.tabBarHeight;
   const inPip = useIsInPictureInPicture();
+  const reduceMotion = useReducedMotion();
 
   // Signed-out users should never stay inside the main app shell.
   if (ready && !user) {
@@ -88,6 +90,7 @@ export default function TabsLayout() {
           safeAreaInsets={{ top: 0, right: 0, bottom: 0, left: 0 }}
           screenOptions={{
             headerShown: false,
+            animation: reduceMotion ? "none" : "shift",
             tabBarActiveTintColor: c.primary,
             tabBarInactiveTintColor: c.textSecondary,
             tabBarStyle: inPip ? { display: "none" } : {

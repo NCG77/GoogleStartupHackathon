@@ -1,4 +1,5 @@
 import { httpsCallable } from "firebase/functions";
+import { analytics } from "./analytics";
 import { functions } from "../config/firebase";
 import type {
   AcceptGuardianInviteRequest,
@@ -29,10 +30,6 @@ import type {
   SosResponse,
 } from "./api";
 
-export function postRoute(body: RouteRequest) {
-  return httpsCallable<RouteRequest, RouteResponse>(functions, "generateRoutes")(body);
-}
-
 export function postReport(body: ReportRequest) {
   return httpsCallable<ReportRequest, ReportResponse>(functions, "verifyReport")(body);
 }
@@ -48,11 +45,15 @@ export function getSafetyScore(query: SafetyScoreQuery) {
   )(query);
 }
 
-export function postSafeWalkStart(body: SafeWalkStartRequest) {
-  return httpsCallable<SafeWalkStartRequest, SafeWalkStartResponse>(
+export async function postSafeWalkStart(body: SafeWalkStartRequest) {
+  const res = await httpsCallable<SafeWalkStartRequest, SafeWalkStartResponse>(
     functions,
     "startSafeWalk"
   )(body);
+  if (res.data?.sessionId) {
+    void analytics.walkStarted(res.data.sessionId, (body.guardianUserIds?.length ?? 0) > 0);
+  }
+  return res;
 }
 
 export function postSafeWalkCheckin(body: SafeWalkCheckinRequest) {
@@ -62,18 +63,28 @@ export function postSafeWalkCheckin(body: SafeWalkCheckinRequest) {
   )(body);
 }
 
-export function createGuardianInvite(body: GuardianInviteRequest) {
-  return httpsCallable<GuardianInviteRequest, GuardianInviteResponse>(
+export async function createGuardianInvite(body: GuardianInviteRequest) {
+  const res = await httpsCallable<GuardianInviteRequest, GuardianInviteResponse>(
     functions,
     "createGuardianInvite"
   )(body);
+  if (res.data?.inviteId) {
+    void analytics.guardianInvited(res.data.inviteId, body.relationship ?? undefined);
+  }
+  return res;
 }
 
-export function acceptGuardianInvite(body: AcceptGuardianInviteRequest) {
-  return httpsCallable<
+export async function acceptGuardianInvite(body: AcceptGuardianInviteRequest) {
+  const res = await httpsCallable<
     AcceptGuardianInviteRequest,
     AcceptGuardianInviteResponse
   >(functions, "acceptGuardianInvite")(body);
+  // Report inviteId, never inviteToken — the token is a one-time secret and
+  // must not leak into telemetry.
+  if (res.data?.status === "accepted") {
+    void analytics.guardianAccepted(body.inviteId);
+  }
+  return res;
 }
 
 export function revokeGuardian(body: RevokeGuardianRequest) {
@@ -109,4 +120,12 @@ export function markNotificationRead(body: MarkNotificationReadRequest) {
     MarkNotificationReadRequest,
     MarkNotificationReadResponse
   >(functions, "markNotificationRead")(body);
+}
+
+export function callDeleteAccount() {
+  return httpsCallable<void, { success: boolean }>(functions, "deleteAccount")();
+}
+
+export function callExportUserData() {
+  return httpsCallable<void, Record<string, unknown>>(functions, "exportUserData")();
 }

@@ -13,7 +13,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import geopandas as gpd
+try:
+    import geopandas as gpd
+except ImportError:
+    gpd = None
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -275,15 +278,79 @@ def load_graph(path: Path = GRAPH_CACHE, rebuild: bool = False) -> RoutingGraph:
     return rg
 
 
+_FALLBACK_PROJECTION_WARNED = False
+
+
+def _latlon_to_utm43n(lat: float, lon: float) -> tuple[float, float]:
+    """
+    WGS84 (lat, lon) to UTM Zone 43N (EPSG:32643) in metres.
+
+    Prefers geopandas/PROJ. Falls back to a closed-form Transverse Mercator
+    implementation when geopandas is unavailable — this runs on the hot path
+    (`snap_to_node` is called for every route request), so the fallback is
+    announced loudly rather than activating silently.
+
+    The fallback is validated against pyproj to < 1 mm across the Mumbai
+    bbox; see tests/test_projection.py. Do not edit the constants below
+    without re-running that test.
+    """
+    global _FALLBACK_PROJECTION_WARNED
+    if gpd is not None:
+        pt = gpd.GeoDataFrame(
+            geometry=gpd.points_from_xy([lon], [lat]), crs="EPSG:4326"
+        ).to_crs(METRIC_CRS)
+        return float(pt.geometry.iloc[0].x), float(pt.geometry.iloc[0].y)
+
+    if not _FALLBACK_PROJECTION_WARNED:
+        _FALLBACK_PROJECTION_WARNED = True
+        print(
+            "  WARNING: geopandas unavailable — using built-in Transverse "
+            "Mercator fallback for coordinate projection. Validated to <1 mm "
+            "over the Mumbai bbox, but install geopandas in production.",
+            flush=True,
+        )
+    # Closed-form Transverse Mercator for UTM Zone 43N
+    a = 6378137.0
+    f = 1 / 298.257223563
+    e2 = 2 * f - f * f
+    lon0 = math.radians(75.0)
+    phi = math.radians(lat)
+    lam = math.radians(lon)
+    k0 = 0.9996
+    N = a / math.sqrt(1 - e2 * math.sin(phi) ** 2)
+    T = math.tan(phi) ** 2
+    C = (e2 / (1 - e2)) * math.cos(phi) ** 2
+    A = (lam - lon0) * math.cos(phi)
+    M = a * (
+        (1 - e2 / 4 - 3 * e2**2 / 64 - 5 * e2**3 / 256) * phi
+        - (3 * e2 / 8 + 3 * e2**2 / 32 + 45 * e2**3 / 1024) * math.sin(2 * phi)
+        + (15 * e2**2 / 256 + 45 * e2**3 / 1024) * math.sin(4 * phi)
+        - (35 * e2**3 / 3072) * math.sin(6 * phi)
+    )
+    x = 500000.0 + k0 * N * (
+        A
+        + (1 - T + C) * A**3 / 6
+        + (5 - 18 * T + T**2 + 72 * C - 58 * e2) * A**5 / 120
+    )
+    y = k0 * (
+        M
+        + N
+        * math.tan(phi)
+        * (
+            A**2 / 2
+            + (5 - T + 9 * C + 4 * C**2) * A**4 / 24
+            + (61 - 58 * T + T**2 + 600 * C - 330 * e2) * A**6 / 720
+        )
+    )
+    return x, y
+
+
 def snap_to_node(
     rg: RoutingGraph, lat: float, lon: float, max_m: float = SNAP_M
 ) -> tuple[tuple[int, int] | None, float]:
     """Snap WGS84 point to nearest graph node. Returns (node_key, snap_m)."""
-    # Project with approximate local UTM via geopandas one-point frame
-    pt = gpd.GeoDataFrame(
-        geometry=gpd.points_from_xy([lon], [lat]), crs="EPSG:4326"
-    ).to_crs(METRIC_CRS)
-    xy = np.array([[pt.geometry.iloc[0].x, pt.geometry.iloc[0].y]])
+    ux, uy = _latlon_to_utm43n(lat, lon)
+    xy = np.array([[ux, uy]])
     dist, idx = rg.snap_tree().query(xy, k=1)
     d = float(dist[0][0])
     if d > max_m:

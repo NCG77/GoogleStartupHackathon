@@ -7,6 +7,7 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { synthesizeTurnSteps, type NavStep } from "@/core/liveNavigation";
+import { analytics } from "./analytics";
 
 export type SafeRouteMode = "safest" | "balanced" | "fastest" | "all";
 
@@ -102,8 +103,9 @@ export async function fetchSafeRoutes(
   destination: { latitude: number; longitude: number },
   mode: SafeRouteMode = "all",
   signal?: AbortSignal,
-  safetyEngine: "xgboost" | "rule" | "compare" = "xgboost",
+  safetyEngine: "rule" | "compare" | string = "rule",
 ): Promise<SafeRouteResponse> {
+  void analytics.routeRequested(origin, destination);
   const base = getRoutingApiBaseUrl();
   const res = await fetch(`${base}/route/safe`, {
     method: "POST",

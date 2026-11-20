@@ -26,11 +26,12 @@ import os
 import threading
 import time
 import uuid
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -65,6 +66,44 @@ LIGHTING_META = PROCESSED / "lighting_meta.json"
 
 COMMUNITY_SYNC_MINUTES = float(os.environ.get("COMMUNITY_SYNC_MINUTES", "15") or 0)
 ADMIN_TOKEN = os.environ.get("SAFEROUTE_ADMIN_TOKEN", "").strip()
+
+# Authentication.
+#
+# When REQUIRE_AUTH=1 the API only accepts requests that carry a valid Firebase
+# ID token in the Authorization header: "Authorization: Bearer <id_token>".
+# Admin bots (ETL, scheduled jobs) may use SAFEROUTE_API_KEYS (comma-separated)
+# passed in "X-API-Key". The auth-free development path is only available when
+# REQUIRE_AUTH is unset / 0.
+REQUIRE_AUTH = os.environ.get("REQUIRE_AUTH", "0").strip() == "1"
+_API_KEYS = {
+    k.strip()
+    for k in os.environ.get("SAFEROUTE_API_KEYS", "").split(",")
+    if k.strip()
+}
+
+# CORS. Default to no cross-origin access; set SAFEROUTE_CORS_ORIGINS to a
+# comma-separated list of allowed origins in production (e.g. the hosting
+# domain and any staging URLs).
+_CORS_ORIGINS_RAW = os.environ.get("SAFEROUTE_CORS_ORIGINS", "").strip()
+if _CORS_ORIGINS_RAW == "*":
+    CORS_ORIGINS: list[str] = ["*"]
+elif _CORS_ORIGINS_RAW:
+    CORS_ORIGINS = [o.strip() for o in _CORS_ORIGINS_RAW.split(",") if o.strip()]
+else:
+    # Deny by default: the mobile app talks to this API as a native fetch (no
+    # Origin header), so a restrictive default is safe and desirable.
+    CORS_ORIGINS = []
+
+# Per-caller rate limits. "caller" is the authenticated uid when available,
+# otherwise the client IP. Limits are deliberately low for public-facing
+# write endpoints and generous for read endpoints.
+RATE_LIMITS: dict[str, tuple[int, float]] = {
+    "report_hazard": (5, 3600.0),     # 5 hazard reports per hour
+    "route_safe": (120, 3600.0),      # 120 route computations per hour
+    "route_reroute": (240, 3600.0),   # 240 reroutes per hour
+}
+_RATE_BUCKETS: dict[tuple[str, str], deque[float]] = {}
+_RATE_LOCK = threading.Lock()
 
 _reload_lock = threading.Lock()
 _data_status: dict[str, Any] = {
@@ -272,11 +311,88 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    # allow_credentials=True is incompatible with wildcard origins, so flip it
+    # off when the deployer explicitly opted into "*".
+    allow_credentials=CORS_ORIGINS != ["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Admin-Token"],
 )
+
+
+def _firebase_admin_app():
+    """Lazy firebase_admin init so unit tests / dev runs without creds work."""
+    import firebase_admin
+    from ml.firestore_reports import _credentials  # type: ignore[attr-defined]
+
+    try:
+        return firebase_admin.get_app("saferoute-api")
+    except ValueError:
+        cred = _credentials()
+        if cred is None:
+            raise RuntimeError(
+                "No Firebase credentials available — cannot verify ID tokens"
+            )
+        return firebase_admin.initialize_app(cred, name="saferoute-api")
+
+
+def _verify_firebase_token(token: str) -> str:
+    """Return the uid for a valid Firebase ID token, or raise HTTPException."""
+    from firebase_admin import auth as fb_auth
+
+    try:
+        decoded = fb_auth.verify_id_token(token, app=_firebase_admin_app())
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(401, "Invalid or expired token") from exc
+    uid = decoded.get("uid")
+    if not uid:
+        raise HTTPException(401, "Token has no uid claim")
+    return str(uid)
+
+
+def require_caller(
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    request: Request = None,  # type: ignore[assignment]
+) -> dict[str, Any]:
+    """Resolve the caller identity. Returns {kind, id} or 401."""
+    # Server-to-server API keys take precedence (used by scheduled jobs).
+    if x_api_key and _API_KEYS and x_api_key in _API_KEYS:
+        return {"kind": "api_key", "id": f"api_key:{x_api_key[:6]}"}
+
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        uid = _verify_firebase_token(token)
+        return {"kind": "user", "id": uid}
+
+    if not REQUIRE_AUTH:
+        # Dev / self-hosted mode — identify by client IP only.
+        client_ip = (
+            request.client.host if request is not None and request.client else "anon"
+        )
+        return {"kind": "anon", "id": f"ip:{client_ip}"}
+
+    raise HTTPException(401, "Missing Authorization: Bearer <token>")
+
+
+def _check_rate_limit(action: str, caller_id: str) -> None:
+    config = RATE_LIMITS.get(action)
+    if not config:
+        return
+    limit, window_s = config
+    now = time.time()
+    key = (action, caller_id)
+    with _RATE_LOCK:
+        bucket = _RATE_BUCKETS.setdefault(key, deque())
+        while bucket and now - bucket[0] > window_s:
+            bucket.popleft()
+        if len(bucket) >= limit:
+            retry_after = max(1, int(window_s - (now - bucket[0])))
+            raise HTTPException(
+                429,
+                detail=f"Rate limit exceeded for {action}; retry in {retry_after}s",
+            )
+        bucket.append(now)
 
 
 class RouteSafeRequest(BaseModel):
@@ -322,7 +438,9 @@ class HazardRequest(BaseModel):
     category: str = "harassment"
     severity: int = Field(default=4, ge=1, le=5)
     note: str = ""
-    verified: bool = True
+    # `verified` is server-only: the field below is ignored for non-admin
+    # callers so an open client cannot inject "verified" hazards.
+    verified: bool = False
     radius_m: float = 180.0
 
 
@@ -413,7 +531,11 @@ def ml_metrics() -> dict[str, Any]:
 
 
 @app.post("/route/safe", response_model=RouteSafeResponse)
-def route_safe(body: RouteSafeRequest) -> RouteSafeResponse:
+def route_safe(
+    body: RouteSafeRequest,
+    caller: dict[str, Any] = Depends(require_caller),
+) -> RouteSafeResponse:
+    _check_rate_limit("route_safe", caller["id"])
     origin = (float(body.origin[0]), float(body.origin[1]))
     destination = (float(body.destination[0]), float(body.destination[1]))
     if not (-90 <= origin[0] <= 90 and -180 <= origin[1] <= 180):
@@ -480,23 +602,36 @@ def route_confidence_ep(route_id: str) -> dict[str, Any]:
 
 
 @app.post("/report/hazard")
-def report_hazard(body: HazardRequest) -> dict[str, Any]:
-    """Create a temporary decaying community hazard (Phase 6)."""
+def report_hazard(
+    body: HazardRequest,
+    caller: dict[str, Any] = Depends(require_caller),
+) -> dict[str, Any]:
+    """Create a temporary decaying community hazard (Phase 6).
+
+    Authenticated users submit hazards as "unverified". Only an API-key caller
+    (a scheduled job or admin) may flag a hazard as verified at submission.
+    """
+    _check_rate_limit("report_hazard", caller["id"])
+    verified = bool(body.verified) and caller["kind"] == "api_key"
     h = add_hazard(
         latitude=body.latitude,
         longitude=body.longitude,
         category=body.category,
         severity=body.severity,
         note=body.note,
-        verified=body.verified,
+        verified=verified,
         radius_m=body.radius_m,
     )
-    return {"ok": True, "hazard": h.to_dict()}
+    return {"ok": True, "hazard": h.to_dict(), "verified": verified}
 
 
 @app.post("/route/reroute")
-def route_reroute(body: RerouteRequest) -> dict[str, Any]:
+def route_reroute(
+    body: RerouteRequest,
+    caller: dict[str, Any] = Depends(require_caller),
+) -> dict[str, Any]:
     """Live Safe Walk recalculation of the remaining path."""
+    _check_rate_limit("route_reroute", caller["id"])
     position = (float(body.position[0]), float(body.position[1]))
     destination = (float(body.destination[0]), float(body.destination[1]))
     mode = "balanced" if body.mode == "all" else body.mode

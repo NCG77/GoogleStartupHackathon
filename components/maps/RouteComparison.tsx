@@ -186,7 +186,7 @@ export function RouteComparison({
                     color={c.primary}
                   />
                   <Text style={[styles.aiBadgeText, { color: c.primary }]}>
-                    AI
+                    Why
                   </Text>
                 </View>
                 <Text style={[styles.whyTitle, { color: c.textPrimary }]}>
@@ -238,7 +238,7 @@ export function RouteComparison({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "flex-end",
   },
   legendWrap: {

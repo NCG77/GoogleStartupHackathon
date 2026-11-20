@@ -22,23 +22,18 @@ export type WhyReason = {
 
 export type WhyThisRouteProps = {
   title?: string;
-
+  summary?: string;
   reasons: WhyReason[];
-
   style?: StyleProp<ViewStyle>;
 };
 
 /**
-
- * AI explanation card — calm, factual, never alarmist.
-
+ * Route explanation card — calm, factual, never alarmist.
  */
-
 export function WhyThisRoute({
   title = "Why this route?",
-
+  summary,
   reasons,
-
   style,
 }: WhyThisRouteProps) {
   const { colors: c, elevation: elev } = useAppTheme();
@@ -47,32 +42,31 @@ export function WhyThisRoute({
     <View
       style={[
         styles.card,
-
         {
           backgroundColor: c.surfaceGlass,
-
           borderColor: c.border,
-
           ...elev.card,
         },
-
         style,
       ]}
-
       accessibilityRole="summary"
     >
       <View style={styles.header}>
         <View style={[styles.aiBadge, { backgroundColor: c.primaryContainer }]}>
           <MaterialIcons name="auto-awesome" size={14} color={c.primary} />
         </View>
-
         <Text style={[styles.title, { color: c.textPrimary }]}>{title}</Text>
       </View>
+
+      {summary ? (
+        <Text style={[styles.summaryText, { color: c.textPrimary }]}>
+          {summary}
+        </Text>
+      ) : null}
 
       {reasons.map((reason) => (
         <View key={reason.text} style={styles.row}>
           <MaterialIcons name={reason.icon} size={18} color={c.success} />
-
           <Text style={[styles.text, { color: c.charcoal }]}>
             {reason.text}
           </Text>
@@ -83,6 +77,12 @@ export function WhyThisRoute({
 }
 
 const styles = StyleSheet.create({
+  summaryText: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: spacing.xs,
+  },
   card: {
     borderRadius: radius.xl,
 

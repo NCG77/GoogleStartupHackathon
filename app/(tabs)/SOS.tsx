@@ -1,4 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from "expo-audio";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import * as Location from "expo-location";
@@ -33,8 +39,8 @@ import {
   typography,
 } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { functions } from "@/config/firebase";
-import { SILENT_SOS_KEY } from "@/constants/preferences";
+import { auth, functions } from "@/config/firebase";
+import { SILENT_SOS_KEY, SOS_AUDIO_PREF_KEY } from "@/constants/preferences";
 import {
   notifyGuardianSms,
   sosMessage,
@@ -45,10 +51,14 @@ import {
   stopSafetyTracking,
 } from "@/services/safetyTracking";
 import { connectedGuardianIds, readGuardians } from "@/services/guardianSync";
+import { sosAudioPath, uploadSosAudio } from "@/services/sosAudio";
+import { analytics } from "@/services/analytics";
 import type { TrackingPayload } from "@/tasks/locationTracking";
 import { httpsCallable } from "firebase/functions";
 
-const EMERGENCY_CALL = "122";
+// India Emergency Response Support System (ERSS) — single national number.
+// Previously hardcoded to 122; 122 is not a valid emergency number in India.
+const EMERGENCY_CALL = "112";
 const WALKER_NAME_KEY = "@SafeRoute:displayName";
 
 type StatusRow = {
@@ -63,6 +73,7 @@ export default function SosScreen() {
   const router = useRouter();
   const { colors: c } = useAppTheme();
   const [session, setSession] = useState<SosSession>(initialSos());
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const sessionRef = useRef(session);
   sessionRef.current = session;
   const [secondsLeft, setSecondsLeft] = useState(5);
@@ -72,12 +83,24 @@ export default function SosScreen() {
   const holdTick = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // SOS audio evidence. Recording starts when the alert fires (if user has not
+  // disabled it). The clip uploads to Firebase Storage on resolve so guardians
+  // can listen through the LiveWalkViewer.
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const audioStateRef = useRef<{
+    recording: boolean;
+    storagePath: string | null;
+    uploadTriggered: boolean;
+  }>({ recording: false, storagePath: null, uploadTriggered: false });
+
   useEffect(() => {
     void (async () => {
       const silentPref = await AsyncStorage.getItem(SILENT_SOS_KEY);
       if (silentPref === "true") {
         setSession((s) => ({ ...s, silent: true, siren: false }));
       }
+      const audioPref = await AsyncStorage.getItem(SOS_AUDIO_PREF_KEY);
+      if (audioPref === "false") setAudioEnabled(false);
     })();
   }, []);
   const watchRef = useRef<Location.LocationSubscription | null>(null);
@@ -91,61 +114,92 @@ export default function SosScreen() {
       if (countdownTimer.current) clearInterval(countdownTimer.current);
       watchRef.current?.remove();
       Vibration.cancel();
+      // Ensure the recorder is stopped if the user leaves the screen mid-SOS.
+      if (audioStateRef.current.recording) {
+        void recorder.stop().catch(() => undefined);
+        audioStateRef.current.recording = false;
+      }
     };
-  }, []);
+  }, [recorder]);
 
   const announce = (msg: string) => {
     AccessibilityInfo.announceForAccessibility(msg);
   };
 
-  const revealStatuses = useCallback(async (smsOk: boolean) => {
-    const rows: StatusRow[] = [
-      {
-        id: "gps",
-        label: "Live location",
-        detail: "Updating every 5 s",
-        on: false,
-      },
-      {
-        id: "audio",
-        label: "Audio recording",
-        detail: "Mic path reserved",
-        on: false,
-      },
-      {
-        id: "guardian",
-        label: "Guardian notified",
-        detail: "Push / in-app alert",
-        on: false,
-      },
-      {
-        id: "nearby",
-        label: "Nearby helpers alerted",
-        detail: "SafeRoute users within 300 m, if any",
-        on: false,
-      },
-      {
-        id: "police",
-        label: "Police notified",
-        detail: `Dialing ${EMERGENCY_CALL}`,
-        on: false,
-      },
-      {
-        id: "sms",
-        label: "SMS sent",
-        detail: smsOk ? "Maps link to contact" : "Queued offline",
-        on: false,
-      },
-    ];
-    setStatusRows(rows.map((r) => ({ ...r })));
-    for (let i = 0; i < rows.length; i++) {
-      await new Promise((r) => setTimeout(r, 200));
+  const setAudioStatus = useCallback(
+    (detail: string, on: boolean) => {
       setStatusRows((prev) =>
-        prev.map((row, idx) => (idx <= i ? { ...row, on: true } : row)),
+        prev.map((row) =>
+          row.id === "audio" ? { ...row, detail, on } : row,
+        ),
       );
-      announce(rows[i].label);
-    }
-  }, []);
+    },
+    [],
+  );
+
+  const revealStatuses = useCallback(
+    async (smsOk: boolean, audioState: "recording" | "disabled" | "unavailable") => {
+      const audioDetail =
+        audioState === "recording"
+          ? "Recording for guardians"
+          : audioState === "disabled"
+            ? "Turned off in SOS settings"
+            : "Mic permission denied";
+      const rows: StatusRow[] = [
+        {
+          id: "gps",
+          label: "Live location",
+          detail: "Updating every 5 s",
+          on: false,
+        },
+        {
+          id: "audio",
+          label: "Audio recording",
+          detail: audioDetail,
+          on: audioState === "recording",
+        },
+        {
+          id: "guardian",
+          label: "Guardian notified",
+          detail: "Push / in-app alert",
+          on: false,
+        },
+        {
+          id: "nearby",
+          label: "Nearby helpers alerted",
+          detail: "SafeRoute users within 300 m, if any",
+          on: false,
+        },
+        {
+          id: "police",
+          label: "Call helpline",
+          detail: `Dialing ${EMERGENCY_CALL}`,
+          on: false,
+        },
+        {
+          id: "sms",
+          label: "SMS sent",
+          detail: smsOk ? "Maps link to contact" : "Queued offline",
+          on: false,
+        },
+      ];
+      setStatusRows(rows.map((r) => ({ ...r })));
+      for (let i = 0; i < rows.length; i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        setStatusRows((prev) =>
+          prev.map((row, idx) => {
+            if (idx > i) return row;
+            // Audio row keeps the state we determined from the recorder — don't
+            // auto-flip it on during the reveal animation.
+            if (row.id === "audio") return row;
+            return { ...row, on: true };
+          }),
+        );
+        announce(rows[i].label);
+      }
+    },
+    [],
+  );
 
   const beginActiveAlert = useCallback(
     async (next: SosSession) => {
@@ -166,6 +220,38 @@ export default function SosScreen() {
             if (payload) void publishSafetyLocation(payload, location).catch(console.warn);
           },
         );
+      }
+
+      // Kick off audio recording in parallel with everything else so the
+      // alert itself is never blocked on mic permission or recorder setup.
+      const uid = auth.currentUser?.uid;
+      const clientEventId = `sos-${Date.now()}`;
+      let audioState: "recording" | "disabled" | "unavailable" = "disabled";
+      let storagePath: string | null = null;
+      if (audioEnabled && uid) {
+        try {
+          const perm = await AudioModule.requestRecordingPermissionsAsync();
+          if (perm.granted) {
+            await setAudioModeAsync({
+              allowsRecording: true,
+              playsInSilentMode: true,
+            });
+            await recorder.prepareToRecordAsync();
+            recorder.record();
+            storagePath = sosAudioPath(uid, clientEventId);
+            audioStateRef.current = {
+              recording: true,
+              storagePath,
+              uploadTriggered: false,
+            };
+            audioState = "recording";
+          } else {
+            audioState = "unavailable";
+          }
+        } catch (error) {
+          console.warn("Could not start SOS audio recording", error);
+          audioState = "unavailable";
+        }
       }
 
       let online = true;
@@ -208,14 +294,15 @@ export default function SosScreen() {
             silent: next.silent,
             batteryPct: null,
             networkType: online ? "online" : "none",
-            audioPath: null,
+            audioPath: storagePath,
             snapshotPath: null,
             safeWalkId: null,
-            eventId: `sos-${Date.now()}`,
+            eventId: clientEventId,
             walkerName,
             ...(guardianUserIds.length ? { guardianUserIds } : {}),
           });
           emergencyId = response.data.emergencyId;
+          void analytics.sosTriggered(clientEventId, next.silent, audioEnabled);
           smsGuardianUserIds = (response.data.deliveries ?? [])
             .filter((delivery) => delivery.sms_required)
             .map((delivery) => delivery.userId);
@@ -246,8 +333,8 @@ export default function SosScreen() {
         smsOk = false;
       }
       Alert.alert(
-        "Call emergency services?",
-        `SafeRoute has started guardian alerts. Call ${EMERGENCY_CALL} now?`,
+        "Call India helpline?",
+        `SafeRoute has started guardian alerts. Call the national emergency helpline ${EMERGENCY_CALL} now?`,
         [
           { text: "Not now", style: "cancel" },
           {
@@ -256,9 +343,9 @@ export default function SosScreen() {
           },
         ],
       );
-      void revealStatuses(smsOk);
+      void revealStatuses(smsOk, audioState);
     },
-    [revealStatuses],
+    [audioEnabled, recorder, revealStatuses],
   );
 
   const clearHoldTimers = () => {
@@ -357,6 +444,26 @@ export default function SosScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   };
 
+  const stopAndUploadAudio = useCallback(async () => {
+    const state = audioStateRef.current;
+    if (!state.recording || state.uploadTriggered) return;
+    audioStateRef.current = { ...state, uploadTriggered: true };
+    try {
+      await recorder.stop();
+    } catch (error) {
+      console.warn("Could not stop SOS recorder", error);
+    }
+    audioStateRef.current = { ...audioStateRef.current, recording: false };
+    const localUri = recorder.uri;
+    if (!localUri || !state.storagePath) return;
+    setAudioStatus("Uploading evidence…", true);
+    const result = await uploadSosAudio(localUri, state.storagePath);
+    setAudioStatus(
+      result ? "Evidence uploaded" : "Upload failed — clip saved on device",
+      Boolean(result),
+    );
+  }, [recorder, setAudioStatus]);
+
   const finishSos = async () => {
     const payload = trackingRef.current;
     setResolving(true);
@@ -371,6 +478,7 @@ export default function SosScreen() {
     } catch (error) {
       console.warn("Could not mark SOS resolved", error);
     } finally {
+      await stopAndUploadAudio();
       trackingRef.current = null;
       watchRef.current?.remove();
       watchRef.current = null;
@@ -402,7 +510,7 @@ export default function SosScreen() {
         ? "#140A0C"
         : phase === "holding"
           ? "#1A1214"
-          : "#111827";
+          : "#111113";
 
   const buttonLabel =
     phase === "countdown"
@@ -566,7 +674,7 @@ export default function SosScreen() {
                     return next;
                   });
                 }}
-                trackColor={{ false: "#374151", true: c.dangerContainer }}
+                trackColor={{ false: "#3A393F", true: c.dangerContainer }}
                 thumbColor={session.silent ? c.danger : "#F9FAFB"}
               />
             </View>
@@ -578,12 +686,29 @@ export default function SosScreen() {
                 onValueChange={() =>
                   setSession((c) => reduceSos(c, { type: "TOGGLE_SIREN" }))
                 }
-                trackColor={{ false: "#374151", true: c.primaryContainer }}
+                trackColor={{ false: "#3A393F", true: c.primaryContainer }}
                 thumbColor={session.siren ? c.primary : "#F9FAFB"}
+              />
+            </View>
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Record audio evidence</Text>
+              <Switch
+                value={audioEnabled}
+                onValueChange={(value) => {
+                  setAudioEnabled(value);
+                  void AsyncStorage.setItem(
+                    SOS_AUDIO_PREF_KEY,
+                    value ? "true" : "false",
+                  );
+                }}
+                trackColor={{ false: "#3A393F", true: c.primaryContainer }}
+                thumbColor={audioEnabled ? c.primary : "#F9FAFB"}
               />
             </View>
             <Text style={styles.hint}>
               Press and hold for 2 seconds. A 5-second cancel window follows.
+              {"\n"}When audio is on, SafeRoute records a short clip after SOS
+              fires and uploads it to your guardians.
             </Text>
           </View>
         ) : null}

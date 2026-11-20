@@ -1,19 +1,19 @@
 """
-Evaluate a saved SafeRoute XGBoost model (MAE / RMSE / R²).
+Evaluate SafeRoute Scoring Engine.
 
-  python -m ml.evaluate_model
+The legacy XGBoost model evaluation has been retired.
+To evaluate and compare Safety Score v2 against legacy linear baseline, run:
+  python -m ml.compare_scoring
 """
-from __future__ import annotations
+import sys
 
-import json
-from pathlib import Path
+def main():
+    print("Legacy XGBoost model evaluation is retired.")
+    print("Run `python -m ml.compare_scoring` to verify Safety Score v2 against axiomatic metrics.")
+    sys.exit(0)
 
-import numpy as np
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
-
-from .predict import FEATURE_COLS, MODEL_PATH, TARGET_COL, load_model
-from .train_xgboost import DATA_CSV, METRICS_PATH, RANDOM_STATE, TEST_SIZE, load_xy
+if __name__ == "__main__":
+    main()
 
 ML_DIR = Path(__file__).resolve().parent
 

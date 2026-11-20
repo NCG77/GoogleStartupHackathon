@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useToast } from "@/components/feedback/ToastProvider";
 import { useAppTheme } from "@/hooks/useAppTheme";
 
 interface SavedLocation {
@@ -30,6 +31,7 @@ const newSelectionNonce = () => String(Date.now());
 const SavedPlacesScreen = () => {
   const { colors: c, elevation: elev } = useAppTheme();
   const [savedPlaces, setSavedPlaces] = useState<SavedLocation[]>([]);
+  const toast = useToast();
   const navigation = useNavigation() as {
     navigate: (name: string, params?: object) => void;
   };
@@ -73,10 +75,10 @@ const SavedPlacesScreen = () => {
                 JSON.stringify(updatedPlaces),
               );
               setSavedPlaces(updatedPlaces);
-              Alert.alert("Deleted", "Place removed from saved list.");
+              toast.show({ tone: "success", title: "Place removed" });
             } catch (e) {
               console.error("Failed to delete place:", e);
-              Alert.alert("Error", "Could not delete place.");
+              toast.show({ tone: "error", title: "Could not delete place" });
             }
           },
           style: "destructive",

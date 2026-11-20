@@ -71,24 +71,24 @@ export default function LiveNavigationScreen() {
 
 /** Subtle dark basemap accents — keeps HUD contrast high at night. */
 const DARK_MAP = [
-  { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
+  { elementType: "geometry", stylers: [{ color: "#1c1c20" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#a9a6ad" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#111113" }] },
   {
     featureType: "road",
     elementType: "geometry",
-    stylers: [{ color: "#304a7d" }],
+    stylers: [{ color: "#3a393f" }],
   },
   {
     featureType: "water",
     elementType: "geometry",
-    stylers: [{ color: "#0e1626" }],
+    stylers: [{ color: "#111113" }],
   },
 ];
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#0e1626",
+    backgroundColor: "#111113",
   },
 });

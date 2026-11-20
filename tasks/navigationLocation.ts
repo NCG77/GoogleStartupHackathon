@@ -76,7 +76,7 @@ export async function startNavigationBackgroundUpdates(
         notificationBody: destinationTitle
           ? `Navigating to ${destinationTitle}`
           : "Turn-by-turn navigation is active.",
-        notificationColor: "#4F46E5",
+        notificationColor: "#800020",
       },
     });
     return true;

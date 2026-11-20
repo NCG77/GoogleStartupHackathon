@@ -32,6 +32,9 @@ export type RouteCardProps = {
 
   lightScore?: number;
 
+  /** Replaces the crowd/light line when provided. */
+  detailLine?: string;
+
   selected?: boolean;
 
   onPress?: () => void;
@@ -59,6 +62,8 @@ export function RouteCard({
   crowdScore,
 
   lightScore,
+
+  detailLine,
 
   selected = false,
 
@@ -112,7 +117,11 @@ export function RouteCard({
         {distanceKm.toFixed(1)} km
       </Text>
 
-      {(crowdScore != null || lightScore != null) && (
+      {detailLine != null ? (
+        <Text style={[styles.submeta, { color: c.textTertiary }]}>
+          {detailLine}
+        </Text>
+      ) : (crowdScore != null || lightScore != null) && (
         <Text style={[styles.submeta, { color: c.textTertiary }]}>
           {crowdScore != null ? `Crowd ${crowdScore}` : null}
 

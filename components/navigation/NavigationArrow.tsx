@@ -15,7 +15,7 @@ export type NavigationArrowProps = {
 export function NavigationArrow({
   coordinate,
   heading,
-  color = "#4F46E5",
+  color = "#800020",
 }: NavigationArrowProps) {
   const markerRef = useRef<any>(null);
 

@@ -63,9 +63,9 @@ export function DesignSearchBar({
     }).start();
   }, [hasValue, focused, placeholderFade]);
 
-  const scaleX = expand.interpolate({
+  const focusShadow = expand.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.02],
+    outputRange: [0.06, 0.12],
   });
 
   const placeholderColor = placeholderFade.interpolate({
@@ -81,15 +81,9 @@ export function DesignSearchBar({
           backgroundColor: c.surface,
           borderColor: focused ? c.borderFocus : c.border,
           ...elev.floating,
+          shadowOpacity: focusShadow,
         },
         variant === "hero" && styles.hero,
-        variant === "hero" && {
-          borderWidth: 2,
-          borderColor: "#FFFFFF",
-        },
-        focused && variant !== "hero" && { borderColor: c.borderFocus },
-        focused && { shadowOpacity: 0.14 },
-        { transform: [{ scaleX }] },
         containerStyle,
       ]}
     >
@@ -195,8 +189,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   hero: {
-    minHeight: 68,
+    minHeight: 60,
     paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    borderWidth: 1,
   },
   heroInput: {
     fontFamily: typography.fontFamily.medium,

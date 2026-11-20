@@ -1,10 +1,10 @@
 {
   "source": "VIIRS monthly VCMCFG (median of 3 months)",
-  "period": "2026-06..2026-08",
-  "period_start": "2026-06",
-  "period_end": "2026-08",
+  "period": "2026-08..2026-10",
+  "period_start": "2026-08",
+  "period_end": "2026-10",
   "window_months": 3,
-  "raster": "viirs_monthly_2026-06_2026-08_mumbai.tif",
+  "raster": "viirs_monthly_2026-08_2026-10_mumbai.tif",
   "reference_radiance": 77.03,
   "p99_radiance": 77.03,
   "roads_total": 57077,
@@ -15,6 +15,6 @@
   "median_shift": -0.0279,
   "mean_abs_change": 0.0846,
   "safety_median": 40.7,
-  "updated_at_ms": 1791195607788,
+  "updated_at_ms": 1795167200000,
   "previous": null
 }

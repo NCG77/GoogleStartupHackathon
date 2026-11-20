@@ -147,7 +147,10 @@ export function RouteComparisonOverlay({
           nestedScrollEnabled
         >
           <Animated.View entering={FadeInDown.delay(80).duration(300)}>
-            <WhyThisRoute reasons={why} />
+            <WhyThisRoute
+              summary={(selected as any)?.explanation?.summary || (selected as any)?.summary}
+              reasons={why}
+            />
           </Animated.View>
         </ScrollView>
 
@@ -165,7 +168,7 @@ export function RouteComparisonOverlay({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "space-between",
   },
   topRow: {

@@ -55,7 +55,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ml.predict import W_CRIME, W_LIGHT, W_POLICE, police_score  # noqa: E402
+from ml.predict import safety_score_v2  # noqa: E402
 
 DATA = ROOT / "data"
 PROCESSED = DATA / "processed"
@@ -249,9 +249,14 @@ def refresh(
             "Inspect the raster, then re-run with --force if it's genuine."
         )
 
-    police = scores["police_dist"].astype(float).map(police_score)
-    crime_component = 1.0 - scores["crime_score"].astype(float).clip(0, 100) / 100.0
-    safety = 100.0 * (W_LIGHT * lighting + W_POLICE * police + W_CRIME * crime_component)
+    # Safety Score v2: weighted geometric mean with continuous exponential police decay
+    p_dist = scores["police_dist"].astype(float).values
+    c_score = scores["crime_score"].astype(float).values
+    l_score = lighting.astype(float).values
+    safety = np.array([
+        safety_score_v2(l, p, c)
+        for l, p, c in zip(l_score, p_dist, c_score)
+    ])
 
     summary = {
         "source": source_label,

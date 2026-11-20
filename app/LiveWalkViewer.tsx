@@ -479,7 +479,7 @@ export default function LiveWalkViewer() {
               <Marker
                 coordinate={destination}
                 title={destinationLabel ?? "Destination"}
-                pinColor="#4F46E5"
+                pinColor={c.primary}
               />
             ) : null}
             <Marker coordinate={point} title={name} anchor={{ x: 0.5, y: 0.5 }}>

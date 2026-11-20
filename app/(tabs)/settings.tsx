@@ -20,6 +20,11 @@ import { useAppearance, type AppearanceMode } from "@/hooks/useAppearance";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useProductTour } from "@/hooks/useProductTour";
+import {
+  isSafeWalkChimeEnabled,
+  setSafeWalkChimeEnabled,
+} from "@/services/feedbackSound";
+import { callDeleteAccount, callExportUserData } from "@/services/callables";
 import { unregisterCurrentPushToken } from "@/services/notifications";
 import { clearPresence, setHelpNearbyEnabled } from "@/services/presence";
 import {
@@ -162,6 +167,7 @@ export default function ProfileScreen() {
   const [anonLocation, setAnonLocation] = useState(true);
   const [shareGuardians, setShareGuardians] = useState(true);
   const [helpNearby, setHelpNearby] = useState(true);
+  const [walkChime, setWalkChime] = useState(true);
   const [stats, setStats] = useState<ProfileStats | null>(() => {
     const u = auth.currentUser;
     if (!u) return null;
@@ -220,6 +226,7 @@ export default function ProfileScreen() {
       setAnonLocation(anon[1] !== "false");
       setShareGuardians(share[1] !== "false");
       setHelpNearby(nearby[1] !== "false");
+      setWalkChime(await isSafeWalkChimeEnabled());
     })();
   }, []);
 
@@ -254,6 +261,11 @@ export default function ProfileScreen() {
   const onHelpNearbyChange = (value: boolean) => {
     setHelpNearby(value);
     void setHelpNearbyEnabled(value).catch(console.warn);
+  };
+
+  const onWalkChimeChange = (value: boolean) => {
+    setWalkChime(value);
+    void setSafeWalkChimeEnabled(value).catch(console.warn);
   };
 
   const onShareChange = (value: boolean) => {
@@ -312,6 +324,45 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const onExportData = async () => {
+    try {
+      Alert.alert("Exporting Data", "Preparing your personal data package...");
+      const res = await callExportUserData();
+      const keys = Object.keys(res.data || {});
+      Alert.alert(
+        "Data Export Ready",
+        `Your personal data has been exported successfully (${keys.join(", ")}). A copy has been generated in accordance with DPDP Act 2023.`
+      );
+    } catch (err: any) {
+      Alert.alert("Export Failed", err?.message || "Could not export user data.");
+    }
+  };
+
+  const onDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account (DPDP Act)",
+      "Are you sure? This will permanently delete your user profile, location history, guardian connections, and stored data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete My Account",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await callDeleteAccount();
+              await AsyncStorage.clear();
+              await signOut(auth).catch(() => {});
+              Alert.alert("Account Deleted", "Your account and personal data have been removed.");
+              router.replace("/Login");
+            } catch (err: any) {
+              Alert.alert("Deletion Failed", err?.message || "Could not delete account.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (ready && !user) {
@@ -601,6 +652,19 @@ export default function ProfileScreen() {
             }
           />
           <SettingRow
+            title="Safe Walk start sound"
+            subtitle="A soft chime when your walk starts. Follows silent mode"
+            trailing={
+              <Switch
+                value={walkChime}
+                onValueChange={onWalkChimeChange}
+                trackColor={{ false: c.border, true: c.primaryContainer }}
+                thumbColor={walkChime ? c.primary : c.surfaceElevated}
+                accessibilityLabel="Play a sound when Safe Walk starts"
+              />
+            }
+          />
+          <SettingRow
             title="Guardians"
             subtitle="People who follow your walks"
             onPress={() => router.push("/contacts")}
@@ -658,6 +722,16 @@ export default function ProfileScreen() {
             },
           ]}
         >
+          <SettingRow
+            title="Download personal data (DPDP)"
+            subtitle="Export all profile, guardian, and safety records"
+            onPress={onExportData}
+          />
+          <SettingRow
+            title="Delete account"
+            subtitle="Permanently erase profile and associated data"
+            onPress={onDeleteAccount}
+          />
           <SettingRow
             title="Sign out"
             subtitle={user?.email ?? "End this session"}

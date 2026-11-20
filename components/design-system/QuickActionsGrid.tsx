@@ -1,8 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -12,6 +10,7 @@ import {
 import { TourAnchor } from "@/components/tour/TourAnchor";
 import { motion, radius, spacing, typography } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { PressableScale } from "./PressableScale";
 
 export type QuickActionItem = {
   key: string;
@@ -30,7 +29,7 @@ export type QuickActionsGridProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** Premium action layout: large pair + small pair. */
+/** Action layout: large pair + small pair, or an even 2-column grid when all are small. */
 export function QuickActionsGrid({ actions, style }: QuickActionsGridProps) {
   const large = actions.filter((a) => (a.size ?? "small") === "large");
   const small = actions.filter((a) => (a.size ?? "small") === "small");
@@ -71,18 +70,15 @@ function ActionCard({
   action: QuickActionItem;
   variant: "large" | "small" | "compact";
 }) {
-  const { colors: c, gradients: grads, elevation: elev } = useAppTheme();
+  const { colors: c, elevation: elev } = useAppTheme();
   const tone = action.tone ?? "primary";
 
-  const toneGrad: Record<
-    NonNullable<QuickActionItem["tone"]>,
-    readonly [string, string]
-  > = {
-    primary: grads.iconPrimary,
-    success: grads.iconSuccess,
-    warning: grads.iconWarning,
-    danger: grads.iconDanger,
-    neutral: grads.iconAccent,
+  const toneBg: Record<NonNullable<QuickActionItem["tone"]>, string> = {
+    primary: c.primaryContainer,
+    success: c.successContainer,
+    warning: c.warningContainer,
+    danger: c.dangerContainer,
+    neutral: c.surfaceVariant,
   };
 
   const toneFg: Record<NonNullable<QuickActionItem["tone"]>, string> = {
@@ -94,11 +90,13 @@ function ActionCard({
   };
 
   const card = (
-    <Pressable
+    <PressableScale
       onPress={action.onPress}
       accessibilityRole="button"
       accessibilityLabel={action.label}
-      style={({ pressed }) => [
+      accessibilityHint={action.description}
+      pressedScale={motion.pressScaleCard}
+      style={[
         styles.card,
         {
           backgroundColor: c.surface,
@@ -108,32 +106,22 @@ function ActionCard({
         variant === "large" && styles.cardLarge,
         variant === "small" && styles.cardSmall,
         variant === "compact" && styles.cardCompact,
-        action.tourId && styles.fill,
-        pressed && {
-          transform: [
-            { translateY: motion.cardLift },
-            { scale: motion.pressScale },
-          ],
-          ...elev.cardLift,
-        },
       ]}
     >
-      <LinearGradient
-        colors={[...toneGrad[tone]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={[
           styles.iconTile,
+          { backgroundColor: toneBg[tone] },
           variant === "large" && styles.iconTileLarge,
           variant === "small" && styles.iconTileSmall,
         ]}
       >
         <MaterialIcons
           name={action.icon}
-          size={variant === "large" ? 26 : 20}
+          size={variant === "large" ? 24 : 20}
           color={toneFg[tone]}
         />
-      </LinearGradient>
+      </View>
       <View style={styles.copy}>
         <Text
           style={[
@@ -141,7 +129,7 @@ function ActionCard({
             { color: c.textPrimary },
             variant === "small" && styles.labelSmall,
           ]}
-          numberOfLines={2}
+          numberOfLines={variant === "small" ? 1 : 2}
         >
           {action.label}
         </Text>
@@ -154,20 +142,20 @@ function ActionCard({
           </Text>
         ) : null}
       </View>
-    </Pressable>
+    </PressableScale>
   );
 
+  // Every card gets the same wrapper so tour-anchored cards size exactly like
+  // the others; otherwise row columns end up with different widths.
+  const cellStyle = variant === "compact" ? styles.compactCell : styles.cell;
   if (action.tourId) {
     return (
-      <TourAnchor
-        id={action.tourId}
-        style={variant !== "compact" ? styles.flex : undefined}
-      >
+      <TourAnchor id={action.tourId} style={cellStyle}>
         {card}
       </TourAnchor>
     );
   }
-  return card;
+  return <View style={cellStyle}>{card}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -185,31 +173,35 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.md,
+    gap: spacing.sm + 4,
   },
   card: {
     borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  cell: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
+  compactCell: {
+    flexBasis: "46%",
+    flexGrow: 1,
+    minWidth: 0,
+  },
   cardLarge: {
     flex: 1,
-    minHeight: 168,
+    minHeight: 156,
     flexDirection: "column",
     justifyContent: "space-between",
     gap: spacing.md,
     padding: spacing.lg,
   },
-  flex: {
-    flex: 1,
-  },
-  fill: {
-    width: "100%",
-    flex: 1,
-  },
   cardSmall: {
     flex: 1,
-    minHeight: 72,
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
@@ -217,21 +209,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   cardCompact: {
-    width: "47%",
-    flexGrow: 1,
-    alignItems: "center",
-    gap: spacing.sm,
+    flex: 1,
+    minHeight: 132,
+    justifyContent: "space-between",
+    gap: spacing.md,
   },
   iconTile: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.lg,
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   iconTileLarge: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: radius.lg,
   },
   iconTileSmall: {
@@ -240,7 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   copy: {
-    flex: 1,
+    flexShrink: 1,
     gap: 4,
   },
   label: {

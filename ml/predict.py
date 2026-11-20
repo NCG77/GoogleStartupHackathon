@@ -1,75 +1,85 @@
 """
-XGBoost safety prediction + rule-engine fallback for SafeRoute routing.
+SafeRoute Safety Scoring Engine (Rule-based v2).
 
-Safety engines
-  xgboost  — primary ML prediction (edge weights)
-  rule     — deterministic CSV / 0.35L + 0.35P + 0.30(1−C)
-  compare  — apply XGBoost for routing; rule scores kept for debug
+Computes transparent, axiomatic safety scores for road segments based on:
+  - Satellite road lighting (NASA/NOAA VIIRS composites)
+  - Police station proximity (exponential continuous decay)
+  - Regional crime rates (non-compensatory geometric weighting)
+  - Optional streetscape features: entrapment and prospect (v2-full)
+
+Note: Machine-learning models (XGBoost) previously trained with closed-form target
+leakage have been retired. All safety scores in SafeRoute are transparent, rule-based
+geometric aggregations that enforce non-compensability and continuous decay.
+AI (Gemini) is used strictly for contextual route explanations.
 """
 from __future__ import annotations
 
-import pickle
+import heapq
+import math
+import os
 import time
 from pathlib import Path
 from typing import Any, Literal
+
+SafetyEngine = Literal["rule", "rule-v2-core", "rule-v2-full", "ml"]
 
 import numpy as np
 import pandas as pd
 
 ML_DIR = Path(__file__).resolve().parent
-MODEL_PATH = ML_DIR / "model.pkl"
 SCORES_CSV = ML_DIR.parent / "data" / "processed" / "road_safety_scores.csv"
 
+# Active feature columns (hospital_dist resolved/retired per audit B2)
 FEATURE_COLS = [
     "lighting_score",
     "police_dist",
     "crime_score",
-    "hospital_dist",
 ]
 TARGET_COL = "safety_score"
 
-SafetyEngine = Literal["xgboost", "rule", "compare"]
+# Default scoring version: "v2-core" (L 0.35, P 0.35, C 0.30)
+# Set SAFEROUTE_SCORE_VERSION="v2-full" to enable entrapment & prospect
+SCORE_VERSION = os.environ.get("SAFEROUTE_SCORE_VERSION", "v2-core").strip().lower()
 
-# Same weights as data/build_road_safety_scores.py
+# Constants for Safety Score v2
+EPS = 0.05      # Floor; prevents one zero annihilating the geometric product
+# Police decay constant in metres.
+#
+# Calibrated by sweeping D0 over all 57,077 Mumbai segments and comparing the
+# resulting score distribution against v1:
+#     D0=1000 -> median 30.2 (v1: 38.2)  shift -8.0, too aggressive
+#     D0=1400 -> median 35.7             shift -2.5
+#     D0=1800 -> median 39.1             shift +0.9  <- chosen
+#     D0=2200 -> median 41.7             shift +3.5
+#
+# 1800 keeps the distribution aligned with v1, so existing score bands and
+# UI colour thresholds stay valid, while fully preserving the
+# non-compensability fix (a pitch-dark street still drops 58.2 -> 31.2).
+D0 = 1800.0
+
+# Legacy weights maintained for v1 reference
 W_LIGHT = 0.35
 W_POLICE = 0.35
 W_CRIME = 0.30
 
-_model_bundle: dict[str, Any] | None = None
+# Street widths for prospect calculation
+FCLASS_DEFAULT_WIDTH_M = {
+    "motorway": 14.0, "trunk": 12.0, "primary": 11.0,
+    "secondary": 9.0, "tertiary": 7.5, "residential": 6.0,
+    "service": 4.0,   "footway": 2.5,  "path": 2.0,
+}
+
 _feature_table: pd.DataFrame | None = None
-_ml_by_road: dict[str, float] | None = None
-_rule_by_road: dict[str, float] | None = None
+_score_by_road: dict[str, float] | None = None
 _community_bias: tuple[dict[str, float], dict[str, float]] | None = None
 
 
-def load_community_bias_cached(force: bool = False) -> tuple[dict[str, float], dict[str, float]]:
-    """(day, night) community bias maps."""
-    global _community_bias
-    if _community_bias is not None and not force:
-        return _community_bias
-    try:
-        from .community_intelligence import load_community_bias_layers
-
-        _community_bias = load_community_bias_layers()
-    except Exception as exc:  # noqa: BLE001
-        print(f"  community bias unavailable ({exc})", flush=True)
-        _community_bias = ({}, {})
-    return _community_bias
+def _clamp(x: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, x))
 
 
-def reload_data(*, scores: bool = True, bias: bool = True) -> None:
-    """Drop cached CSV / predictions / bias so the next apply re-reads disk."""
-    global _feature_table, _ml_by_road, _rule_by_road, _community_bias
-    if scores:
-        _feature_table = None
-        _ml_by_road = None
-        _rule_by_road = None
-    if bias:
-        _community_bias = None
-
-
-def police_score(dist_m: float) -> float:
-    """Piecewise police proximity score used by the rule engine."""
+def police_score_v1(dist_m: float | None) -> float:
+    """Legacy piecewise police proximity score (v1)."""
     if dist_m is None or (isinstance(dist_m, float) and np.isnan(dist_m)):
         return 0.2
     d = float(dist_m)
@@ -84,42 +94,191 @@ def police_score(dist_m: float) -> float:
     return 0.2
 
 
+def police_score_v2(dist_m: float | None) -> float:
+    """Smooth, unbounded-decay police proximity score."""
+    if dist_m is None or (isinstance(dist_m, float) and (np.isnan(dist_m) or math.isnan(dist_m))):
+        return EPS
+    return _clamp(math.exp(-float(dist_m) / D0), EPS, 1.0)
+
+
+# Default police_score alias points to v2
+police_score = police_score_v2
+
+
+def safety_score_v2(
+    lighting_score: float,
+    police_dist: float,
+    crime_score: float,
+    entrapment: float | None = None,
+    prospect: float | None = None,
+) -> float:
+    """
+    Weighted geometric mean of normalised safety components.
+
+    Non-compensatory: a near-zero value in any component drags the whole
+    score down, unlike the previous linear form where a strong component
+    could mask a catastrophic one.
+
+    All components are normalised to [EPS, 1.0] where 1.0 = safest.
+    Weights renormalise over whichever components are present, so the
+    function degrades gracefully when optional features are missing.
+    """
+    L = _clamp(float(lighting_score), EPS, 1.0)
+    P = police_score_v2(police_dist)
+    C = _clamp(1.0 - float(crime_score) / 100.0, EPS, 1.0)
+
+    terms: list[tuple[float, float]] = [
+        (L, 0.35),
+        (P, 0.35),
+        (C, 0.30),
+    ]
+    if entrapment is not None:
+        terms.append((_clamp(float(entrapment), EPS, 1.0), 0.16))
+    if prospect is not None:
+        terms.append((_clamp(float(prospect), EPS, 1.0), 0.10))
+
+    total_w = sum(w for _, w in terms)
+    score = 100.0
+    for value, weight in terms:
+        score *= value ** (weight / total_w)
+    return _clamp(score, 0.0, 100.0)
+
+
+def count_nodes_within(graph: Any, start_node: Any, radius_m: float, min_degree: int = 3) -> int:
+    """Count nodes of degree >= min_degree reachable within radius_m along the graph."""
+    if graph is None or start_node not in graph:
+        return 0
+    visited: dict[Any, float] = {start_node: 0.0}
+    heap = [(0.0, start_node)]
+    matching_nodes = 0
+
+    while heap:
+        d, u = heapq.heappop(heap)
+        if d > radius_m:
+            break
+        if u != start_node and graph.degree(u) >= min_degree:
+            matching_nodes += 1
+            if matching_nodes >= 3:
+                return 3
+        for v, data in graph[u].items():
+            attrs = data.get("attrs")
+            length = getattr(attrs, "length_m", None) or (data.get("length_m") or 10.0)
+            new_d = d + float(length)
+            if new_d <= radius_m and (v not in visited or new_d < visited[v]):
+                visited[v] = new_d
+                heapq.heappush(heap, (new_d, v))
+    return matching_nodes
+
+
+def entrapment_score(node_id: Any, graph: Any, radius_m: float = 100.0) -> float:
+    """
+    1.0 = many escape routes nearby; EPS = dead end with no alternatives.
+
+    Counts graph nodes of degree >= 3 (real intersections) reachable within
+    `radius_m`. Three or more intersections within 100 m is treated as fully
+    safe on this axis. A dead end applies a hard penalty.
+    """
+    if graph is None or node_id not in graph:
+        return 0.5
+    intersections = count_nodes_within(graph, node_id, radius_m, min_degree=3)
+    base = _clamp(intersections / 3.0, 0.0, 1.0)
+    is_dead_end = graph.degree(node_id) <= 1
+    if is_dead_end:
+        base *= 0.4
+    return _clamp(base, EPS, 1.0)
+
+
+def prospect_score(edge: Any, graph: Any = None) -> float:
+    """
+    1.0 = wide and straight (you can see far ahead);
+    EPS = narrow and winding.
+
+    width: OSM `width` tag -> `lanes` * 3.5 -> fclass default
+    straightness: euclidean distance / path length  (1.0 = perfectly straight)
+    """
+    if isinstance(edge, dict):
+        fclass = edge.get("fclass")
+        width_val = edge.get("width")
+        lanes_val = edge.get("lanes")
+        coords = edge.get("coords") or []
+        path_len = edge.get("length_m", 0.0)
+    else:
+        fclass = getattr(edge, "fclass", "")
+        width_val = getattr(edge, "width", None)
+        lanes_val = getattr(edge, "lanes", None)
+        coords = getattr(edge, "coords", [])
+        path_len = getattr(edge, "length_m", 0.0)
+
+    width_m = (
+        width_val
+        or (float(lanes_val) * 3.5 if lanes_val else None)
+        or FCLASS_DEFAULT_WIDTH_M.get(str(fclass), 6.0)
+    )
+    width_norm = _clamp(float(width_m) / 12.0, 0.0, 1.0)
+
+    if coords and len(coords) >= 2:
+        lat0, lon0 = coords[0]
+        lat1, lon1 = coords[-1]
+        dlat = (lat1 - lat0) * 111139.0
+        dlon = (lon1 - lon0) * 111139.0 * math.cos(math.radians(lat0))
+        euclidean_m = math.hypot(dlat, dlon)
+    else:
+        euclidean_m = path_len
+
+    straightness = _clamp(
+        float(euclidean_m) / max(float(path_len), 1e-6),
+        0.0,
+        1.0,
+    )
+    return _clamp(0.6 * width_norm + 0.4 * straightness, EPS, 1.0)
+
+
 def rule_safety_score(
     lighting_score: float,
     police_dist: float,
     crime_score: float,
-    hospital_dist: float | None = None,  # unused by rule; API symmetry
 ) -> float:
-    """
-    Deterministic MVP equation:
-      safety = 100 × (0.35·L + 0.35·P + 0.30·(1 − C/100))
-    """
-    L = max(0.0, min(1.0, float(lighting_score)))
-    P = police_score(float(police_dist))
-    C = max(0.0, min(100.0, float(crime_score)))
-    score = 100.0 * (W_LIGHT * L + W_POLICE * P + W_CRIME * (1.0 - C / 100.0))
-    return float(max(0.0, min(100.0, score)))
+    """Deterministic rule-based safety score (Safety Score v2)."""
+    return safety_score_v2(lighting_score, police_dist, crime_score)
 
 
-def load_model(path: Path = MODEL_PATH) -> dict[str, Any]:
-    global _model_bundle
-    if _model_bundle is not None and path == MODEL_PATH:
-        return _model_bundle
-    if not path.exists():
-        raise FileNotFoundError(f"XGBoost model not found: {path}")
-    with path.open("rb") as f:
-        bundle = pickle.load(f)
-    if path == MODEL_PATH:
-        _model_bundle = bundle
-    return bundle
+def load_model() -> None:
+    """The legacy XGBoost model has been retired in favor of Safety Score v2."""
+    return None
 
 
-def model_available(path: Path = MODEL_PATH) -> bool:
+def predict_safety(
+    lighting_score: float,
+    police_dist: float,
+    crime_score: float,
+    **kwargs: Any,
+) -> float:
+    """Returns the rule-based v2 safety score (XGBoost model retired)."""
+    return safety_score_v2(lighting_score, police_dist, crime_score)
+
+
+def load_community_bias_cached(force: bool = False) -> tuple[dict[str, float], dict[str, float]]:
+    """(day, night) community bias maps."""
+    global _community_bias
+    if _community_bias is not None and not force:
+        return _community_bias
     try:
-        load_model(path)
-        return True
-    except Exception:
-        return False
+        from .community_intelligence import load_community_bias_layers
+        _community_bias = load_community_bias_layers()
+    except Exception as exc:  # noqa: BLE001
+        print(f"  community bias unavailable ({exc})", flush=True)
+        _community_bias = ({}, {})
+    return _community_bias
+
+
+def reload_data(*, scores: bool = True, bias: bool = True) -> None:
+    """Drop cached CSV / scores / bias so the next apply re-reads disk."""
+    global _feature_table, _score_by_road, _community_bias
+    if scores:
+        _feature_table = None
+        _score_by_road = None
+    if bias:
+        _community_bias = None
 
 
 def load_feature_table(csv_path: Path = SCORES_CSV) -> pd.DataFrame:
@@ -136,91 +295,25 @@ def load_feature_table(csv_path: Path = SCORES_CSV) -> pd.DataFrame:
     return table
 
 
-def predict_safety(
-    lighting_score: float,
-    police_dist: float,
-    crime_score: float,
-    hospital_dist: float = 2000.0,
-    model_bundle: dict[str, Any] | None = None,
-) -> float:
-    """Single-road XGBoost prediction (clamped 0–100)."""
-    bundle = model_bundle or load_model()
-    model = bundle["model"]
-    features = list(bundle.get("features") or FEATURE_COLS)
-    row = {
-        "lighting_score": float(lighting_score),
-        "police_dist": float(police_dist),
-        "crime_score": float(crime_score),
-        "hospital_dist": float(hospital_dist),
-    }
-    X = np.array([[row[f] for f in features]], dtype=float)
-    pred = float(model.predict(X)[0])
-    return float(max(0.0, min(100.0, pred)))
-
-
-def predict_batch(
-    X: np.ndarray,
-    model_bundle: dict[str, Any] | None = None,
-) -> np.ndarray:
-    bundle = model_bundle or load_model()
-    pred = bundle["model"].predict(X)
-    return np.clip(np.asarray(pred, dtype=float), 0.0, 100.0)
-
-
-def _road_score_maps(
-    model_path: Path = MODEL_PATH,
-) -> tuple[dict[str, float], dict[str, float], bool]:
-    """Return (ml_by_road, rule_by_road, ml_ok). Cached after first call."""
-    global _ml_by_road, _rule_by_road
-
-    table = load_feature_table()
-    if _rule_by_road is None:
-        _rule_by_road = {
-            str(rid): float(score)
-            for rid, score in table[TARGET_COL].items()
-        }
-
-    if _ml_by_road is not None:
-        return _ml_by_road, _rule_by_road, True
-
-    try:
-        bundle = load_model(model_path)
-        feats = list(bundle.get("features") or FEATURE_COLS)
-        X = table[feats].astype(float).values
-        preds = predict_batch(X, bundle)
-        _ml_by_road = {
-            str(rid): float(p) for rid, p in zip(table.index.astype(str), preds)
-        }
-        return _ml_by_road, _rule_by_road, True
-    except Exception as exc:  # noqa: BLE001
-        print(f"  XGBoost unavailable ({exc}); using rule engine", flush=True)
-        _ml_by_road = dict(_rule_by_road)
-        return _ml_by_road, _rule_by_road, False
-
-
 def _base_road_id(edge_road_id: str) -> str:
-    # Graph stores "{osm_id}:{part}:{i}"
     return str(edge_road_id).split(":", 1)[0]
 
 
 def _time_shift_maps(table: pd.DataFrame) -> tuple[dict[str, float], dict[str, float]]:
-    """
-    Per road: how much the rule score moves when re-weighted for day / night,
-    relative to the static 0.35/0.35/0.30 score the model was trained on.
-    """
+    """Per road: shift when re-weighted for day vs night."""
     from routing.dynamic_risk import DAY_WEIGHTS, NIGHT_WEIGHTS, STATIC_WEIGHTS
 
-    L = table["lighting_score"].astype(float).clip(0.0, 1.0)
-    P = table["police_dist"].astype(float).map(police_score)
-    C = 1.0 - table["crime_score"].astype(float).clip(0.0, 100.0) / 100.0
+    L = table["lighting_score"].astype(float).clip(EPS, 1.0)
+    P = table["police_dist"].astype(float).map(police_score_v2)
+    C = (1.0 - table["crime_score"].astype(float).clip(0.0, 100.0) / 100.0).clip(EPS, 1.0)
 
     def score(w: tuple[float, float, float]) -> pd.Series:
-        return 100.0 * (w[0] * L + w[1] * P + w[2] * C)
+        w_sum = sum(w)
+        wL, wP, wC = w[0] / w_sum, w[1] / w_sum, w[2] / w_sum
+        return 100.0 * (L ** wL) * (P ** wP) * (C ** wC)
 
     static = score(STATIC_WEIGHTS)
     ids = table.index.astype(str)
-    # Zero-mean: re-weighting only re-ranks roads; the overall after-dark risk
-    # increase comes from dynamic_risk.time_weight.
     day_shift = score(DAY_WEIGHTS) - static
     night_shift = score(NIGHT_WEIGHTS) - static
     day = dict(zip(ids, (day_shift - day_shift.mean()).round(2)))
@@ -230,46 +323,52 @@ def _time_shift_maps(table: pd.DataFrame) -> tuple[dict[str, float], dict[str, f
 
 def apply_safety_to_graph(
     rg: Any,
-    engine: SafetyEngine = "xgboost",
-    model_path: Path = MODEL_PATH,
+    engine: str = "rule",
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """
     Set per-edge safety used by A*:
-
       safety_day / safety_night = base + time-of-day shift − community bias
-      safety                    = value at the current Mumbai hour (legacy readers)
+      safety                    = value at the current Mumbai hour
 
-    `base` is the XGBoost prediction (or rule score if the model can't load).
-    Always preserves attrs.safety_rule (CSV rule-engine score).
+    Uses the transparent rule-based v2 safety score.
     """
     from routing.dynamic_risk import edge_safety_at, night_factor
 
     t0 = time.time()
-    used: SafetyEngine = engine if engine != "compare" else "xgboost"
-
-    ml_by_road, rule_by_road, ml_ok = _road_score_maps(model_path)
-    if used == "xgboost" and not ml_ok:
-        used = "rule"
-
     table = load_feature_table()
     shift_day, shift_night = _time_shift_maps(table)
     lighting = table["lighting_score"].astype(float).to_dict()
-    score_map = rule_by_road if used == "rule" else ml_by_road
     bias_day_map, bias_night_map = load_community_bias_cached()
     nf_now = night_factor()
     biased_roads = 0
 
+    score_version = SCORE_VERSION
+    use_full = (score_version == "v2-full")
+
     updated = 0
-    for _u, _v, data in rg.graph.edges(data=True):
+    for u, v, data in rg.graph.edges(data=True):
         attrs = data.get("attrs")
         if attrs is None:
             continue
         base_id = _base_road_id(attrs.road_id)
-        rule = rule_by_road.get(base_id)
-        if rule is None:
-            rule = float(getattr(attrs, "safety_rule", None) or attrs.safety)
-        attrs.safety_rule = rule
-        base = float(score_map.get(base_id, rule))
+
+        # Base v2 score
+        if base_id in table.index:
+            row = table.loc[base_id]
+            l_val = float(row["lighting_score"])
+            p_val = float(row["police_dist"])
+            c_val = float(row["crime_score"])
+        else:
+            l_val = float(getattr(attrs, "lighting_score", 0.5) or 0.5)
+            p_val = float(getattr(attrs, "police_dist", 1000.0) or 1000.0)
+            c_val = float(getattr(attrs, "crime_score", 40.0) or 40.0)
+
+        entrap = entrapment_score(u, rg.graph) if use_full else None
+        prosp = prospect_score(attrs, rg.graph) if use_full else None
+        base = safety_score_v2(l_val, p_val, c_val, entrapment=entrap, prospect=prosp)
+
+        attrs.safety_rule = base
         b_day = float(bias_day_map.get(base_id, 0.0))
         b_night = float(bias_night_map.get(base_id, 0.0))
         if b_day > 0 or b_night > 0:
@@ -284,9 +383,10 @@ def apply_safety_to_graph(
         updated += 1
 
     meta = {
-        "safety_engine": used,
+        "safety_engine": f"rule-{score_version}",
         "requested_engine": engine,
-        "ml_loaded": ml_ok,
+        "ml_loaded": False,
+        "score_version": score_version,
         "edges_updated": updated,
         "community_bias_roads": biased_roads,
         "community_bias_loaded": bool(bias_day_map or bias_night_map),
@@ -294,7 +394,7 @@ def apply_safety_to_graph(
     }
     rg.meta.update(meta)
     print(
-        f"  safety engine={used} ml_loaded={ml_ok} "
+        f"  safety engine=rule-{score_version} "
         f"community_bias_roads={biased_roads} "
         f"edges={updated:,} ({meta['apply_s']}s)",
         flush=True,

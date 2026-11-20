@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { submitCommunityReport } from "@/services/communityIntelligence";
+import { analytics } from "@/services/analytics";
 
 type Step = 1 | 2 | 3;
 
@@ -161,6 +162,7 @@ export default function CommunityReportScreen() {
         return;
       }
       setStep(3);
+      void analytics.reportSubmitted(category, severity, anonymous);
     } finally {
       setSubmitting(false);
     }

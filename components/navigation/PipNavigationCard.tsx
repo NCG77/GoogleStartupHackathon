@@ -28,7 +28,7 @@ export function PipNavigationCard({
           <MaterialIcons
             name={alertTitle ? "alt-route" : maneuverIcon}
             size={26}
-            color={alertTitle ? "#FBBF24" : navDark.text}
+            color={alertTitle ? navDark.warning : navDark.text}
           />
           <Text style={styles.distance} numberOfLines={1}>
             {alertTitle ? "Rerouting" : maneuverDistance || "Go"}

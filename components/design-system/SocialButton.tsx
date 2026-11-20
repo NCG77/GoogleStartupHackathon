@@ -66,6 +66,11 @@ export function SocialButton({
 
   const isApple = provider === "apple";
 
+  // Apple's button is the inverse of the canvas in both schemes.
+  const appleBg = c.textPrimary;
+
+  const appleFg = c.background;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -82,7 +87,7 @@ export function SocialButton({
         styles.base,
 
         isApple
-          ? { backgroundColor: c.charcoal, borderColor: c.charcoal }
+          ? { backgroundColor: appleBg, borderColor: appleBg }
           : { backgroundColor: c.surface, borderColor: c.border },
 
         pressed && !isDisabled && styles.pressed,
@@ -93,7 +98,7 @@ export function SocialButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={isApple ? c.textOnPrimary : c.textPrimary} />
+        <ActivityIndicator color={isApple ? appleFg : c.textPrimary} />
       ) : (
         <View style={styles.row}>
           <Ionicons
@@ -101,7 +106,7 @@ export function SocialButton({
 
             size={20}
 
-            color={isApple ? c.textOnPrimary : c.textPrimary}
+            color={isApple ? appleFg : c.textPrimary}
           />
 
           <Text
@@ -110,7 +115,7 @@ export function SocialButton({
 
               { color: c.textPrimary },
 
-              isApple && { color: c.textOnPrimary },
+              isApple && { color: appleFg },
             ]}
           >
             {meta.label}

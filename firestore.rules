@@ -58,11 +58,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    match /road_segments/{id} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-
     match /safety_scores/{id} {
       allow read: if signedIn();
       allow write: if false;
@@ -108,6 +103,7 @@ service cloud.firestore {
         && emergencyOpen(data)
         && data.responderAccessUntil is timestamp
         && request.time < data.responderAccessUntil
+        && exists(/databases/$(database)/documents/sos_responders/$(id))
         && request.auth.uid in
              get(/databases/$(database)/documents/sos_responders/$(id)).data.userIds;
     }

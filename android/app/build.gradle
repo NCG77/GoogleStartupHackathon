@@ -5,6 +5,31 @@ apply plugin: "com.facebook.react"
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 /**
+ * Google Maps key for the manifest. Never hard-code it in AndroidManifest.xml.
+ * Lookup order: EXPO_PUBLIC_GOOGLE_MAPS_API_KEY env var (EAS / expo run:android),
+ * then the googleMapsApiKey Gradle property, then the project-root .env file.
+ */
+def resolveGoogleMapsApiKey(String root) {
+    def key = System.getenv("EXPO_PUBLIC_GOOGLE_MAPS_API_KEY")
+    if (!key) {
+        key = findProperty("googleMapsApiKey")
+    }
+    if (!key) {
+        def envFile = new File(root, ".env")
+        if (envFile.exists()) {
+            def line = envFile.readLines().find { it.trim().startsWith("EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=") }
+            if (line) {
+                key = line.substring(line.indexOf("=") + 1).trim().replaceAll(/^["']|["']$/, "")
+            }
+        }
+    }
+    if (!key) {
+        logger.warn("EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is not set; Google Maps will not render.")
+    }
+    return key ?: ""
+}
+
+/**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
@@ -96,6 +121,8 @@ android {
         versionName "2.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+
+        manifestPlaceholders = [googleMapsApiKey: resolveGoogleMapsApiKey(projectRoot)]
     }
     signingConfigs {
         debug {

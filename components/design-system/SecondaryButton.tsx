@@ -1,47 +1,58 @@
-import React from "react";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import React, { useState } from "react";
 import {
-  Pressable,
   StyleSheet,
   Text,
+  View,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { motion, radius, spacing, touch, typography } from "@/constants/theme";
+import { radius, spacing, touch, typography } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { PressableScale } from "./PressableScale";
 
-export type SecondaryButtonProps = PressableProps & {
+export type SecondaryButtonProps = Omit<PressableProps, "style"> & {
   label: string;
   fullWidth?: boolean;
+  /** Optional leading icon. */
+  icon?: React.ComponentProps<typeof MaterialIcons>["name"];
   style?: StyleProp<ViewStyle>;
 };
 
 export function SecondaryButton({
   label,
   fullWidth = true,
+  icon,
   disabled,
   style,
+  onPressIn,
+  onPressOut,
   ...rest
 }: SecondaryButtonProps) {
-  const { colors: c, elevation: elev } = useAppTheme();
+  const { colors: c } = useAppTheme();
+  const [pressed, setPressed] = useState(false);
+  const active = pressed && !disabled;
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
-      style={({ pressed }) => [
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
+      style={[
         styles.base,
         {
-          backgroundColor: c.surface,
-          borderColor: pressed && !disabled ? c.primary : c.border,
-          ...(pressed && !disabled ? elev.cardLift : elev.card),
-          ...(pressed && !disabled
-            ? {
-                backgroundColor: c.surfaceVariant,
-                transform: [{ scale: motion.pressScale }],
-              }
-            : null),
+          backgroundColor: active ? c.surfaceVariant : c.surface,
+          borderColor: active ? c.primary : c.border,
         },
         fullWidth && styles.fullWidth,
         disabled && styles.disabled,
@@ -49,8 +60,18 @@ export function SecondaryButton({
       ]}
       {...rest}
     >
-      <Text style={[styles.label, { color: c.textPrimary }]}>{label}</Text>
-    </Pressable>
+      <View style={styles.row}>
+        {icon ? (
+          <MaterialIcons name={icon} size={20} color={c.textPrimary} />
+        ) : null}
+        <Text
+          style={[styles.label, { color: c.textPrimary }]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </View>
+    </PressableScale>
   );
 }
 
@@ -60,7 +81,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radius.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -69,6 +90,11 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.45,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   label: {
     fontFamily: typography.fontFamily.semibold,

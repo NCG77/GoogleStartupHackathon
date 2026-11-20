@@ -2,11 +2,12 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import React, { useEffect } from "react";
 
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, type ColorValue } from "react-native";
 
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
@@ -19,35 +20,41 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 type TabIconProps = {
   focused: boolean;
 
-  color: string | number;
+  color: ColorValue;
 
   children: (opts: { color: string; size: number }) => React.ReactNode;
 };
 
-/** Spring-scaled tab glyph with indigo gradient wash when active. */
+/** Tab glyph with a burgundy pill that eases in behind the active tab. */
 
 export function AnimatedTabIcon({ focused, color, children }: TabIconProps) {
   const { colors: c, gradients: grads } = useAppTheme();
 
+  const reduceMotion = useReducedMotion();
+
   const progress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withSpring(focused ? 1 : 0, {
-      damping: 14,
+    const target = focused ? 1 : 0;
 
-      stiffness: 220,
-
-      mass: 0.6,
-    });
-  }, [focused, progress]);
+    progress.value = reduceMotion
+      ? target
+      : withSpring(target, { damping: 20, stiffness: 260, mass: 0.6 });
+  }, [focused, progress, reduceMotion]);
 
   const wrapStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + (motion.iconActive - 1) * progress.value }],
   }));
 
+  const washStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+
+    transform: [{ scaleX: 0.6 + 0.4 * progress.value }],
+  }));
+
   return (
     <Animated.View style={[styles.iconWrap, wrapStyle]}>
-      {focused ? (
+      <Animated.View pointerEvents="none" style={[styles.wash, washStyle]}>
         <LinearGradient
           colors={[...grads.navActive]}
 
@@ -55,9 +62,9 @@ export function AnimatedTabIcon({ focused, color, children }: TabIconProps) {
 
           end={{ x: 1, y: 1 }}
 
-          style={styles.wash}
+          style={StyleSheet.absoluteFill}
         />
-      ) : null}
+      </Animated.View>
 
       {children({
         color: focused ? c.textOnPrimary : String(color),
@@ -102,9 +109,9 @@ export function AnimatedTabLabel({ focused, children }: TabLabelProps) {
 
 const styles = StyleSheet.create({
   iconWrap: {
-    width: 40,
+    width: 48,
 
-    height: 28,
+    height: 30,
 
     borderRadius: radius.pill,
 
@@ -120,7 +127,7 @@ const styles = StyleSheet.create({
 
     borderRadius: radius.pill,
 
-    opacity: 0.95,
+    overflow: "hidden",
   },
 
   label: {

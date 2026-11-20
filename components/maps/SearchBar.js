@@ -42,7 +42,7 @@ const SearchBar = ({
     }, 500);
   };
 
-  const glassBg = isDark ? "rgba(21,26,45,0.78)" : "rgba(255,255,255,0.72)";
+  const glassBg = isDark ? "rgba(28,28,32,0.86)" : "rgba(255,255,255,0.82)";
   const glassBorder = isDark
     ? "rgba(255,255,255,0.12)"
     : "rgba(255,255,255,0.85)";

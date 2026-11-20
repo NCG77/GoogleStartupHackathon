@@ -3,7 +3,7 @@
 Production design language for the React Native app and the matching Figma library.
 
 **Brand personality:** trustworthy · calm · premium · minimal · accessible · safety-first · Material 3  
-**Not:** pink “women-only” styling. Use deep indigo, emerald, white, charcoal, and a warm accent sparingly.
+**Not:** pink “women-only” styling. Burgundy is the single brand accent on neutral off-white / near-black surfaces; SOS and danger stay a distinct red so they never read as brand.
 
 ---
 
@@ -25,20 +25,25 @@ Create one library file: `SafeRoute 2.0 — Design System`
 
 ## Color styles (Figma → Local styles)
 
-| Style name | Hex | Role |
-| --- | --- | --- |
-| `Primary / Default` | `#4F46E5` | Brand, primary CTA, active nav |
-| `Primary / Pressed` | `#4338CA` | Pressed primary |
-| `Primary / Container` | `#EEF2FF` | Soft brand surfaces |
-| `Secondary` | `#2563EB` | Royal blue accents |
-| `Success / Emerald` | `#10B981` | Safe / positive |
-| `Warning` | `#F59E0B` | Caution |
-| `Danger` | `#EF4444` | SOS, critical |
-| `Background` | `#FAFBFD` | Warm off-white canvas |
-| `Surface` | `#FFFFFF` | Cards, sheets |
-| `Text / Primary` | `#0F172A` | Headlines, body |
-| `Text / Secondary` | `#64748B` | Meta, captions |
-| `Divider` | `#E2E8F0` | Hairlines |
+| Style name | Light | Dark | Role |
+| --- | --- | --- | --- |
+| `Primary / Default` | `#800020` | `#B3364F` | Brand, primary CTA, active nav |
+| `Primary / Pressed` | `#66001A` | — | Pressed primary |
+| `Primary / Container` | `#F5E6E9` | `#3A0F1B` | Soft brand surfaces, icon tiles |
+| `Brand / Deep` | `#4A0E1C` | `#7A1A2F` | End stop of the `important` gradient (Safe Walk hero) |
+| `Success` | `#2F8F5B` | — | Safe / positive |
+| `Warning` | `#C77700` | — | Caution, check-in needed |
+| `Danger` | `#D92D20` | `#F2564B` | SOS, critical (never burgundy) |
+| `Background` | `#F7F5F4` | `#111113` | Canvas |
+| `Surface` | `#FFFFFF` | `#1C1C20` | Cards, sheets |
+| `Text / Primary` | `#111113` | `#F5F3F2` | Headlines, body |
+| `Text / Secondary` | `#66646B` | `#B4B1B8` | Meta |
+| `Text / Tertiary` | `#929098` | — | Captions, kickers |
+| `Divider` | `#E8E3E1` | — | Hairlines |
+
+`textOnPrimary` is white in both modes. For inverse surfaces (e.g. the Apple sign-in button) use `textPrimary` as the fill and `background` as the label instead of a fixed `charcoal` + white pair.
+
+Gradients are restrained: `primaryButton` and `important` are near-flat burgundy, `sos` is red. Shadows are neutral (`#111113`, black in dark mode); no colored glows.
 
 Heat-map route color is **not** a static style — use continuous score → hue (see `core/heatmap.ts`).
 
@@ -61,9 +66,9 @@ Heat-map route color is **not** a static style — use continuous score → hue 
 
 | Style | Spec |
 | --- | --- |
-| `Elevation / Card` | Y 4 · Blur 16 · `#111827` @ 8% |
-| `Elevation / FAB` | Y 8 · Blur 20 · `#111827` @ 16% |
-| `Elevation / Sheet` | Y −4 · Blur 24 · `#111827` @ 10% |
+| `Elevation / Card` | Y 4 · Blur 16 · `#111113` @ 8% |
+| `Elevation / FAB` | Y 8 · Blur 20 · `#111113` @ 16% |
+| `Elevation / Sheet` | Y −4 · Blur 24 · `#111113` @ 10% |
 
 Glass: only on map overlays / bottom nav — fill `#FFFFFF` @ 78% + background blur 20.
 
@@ -82,13 +87,20 @@ Glass: only on map overlays / bottom nav — fill `#FFFFFF` @ 78% + background b
 Recreate each as a Figma component. Props map 1:1 to RN props in `components/design-system/`.
 
 ### Primary Button
-- Variants: `Default` | `Pressed` | `Disabled` | `Loading`
+- Variants: `Default` | `Pressed` | `Disabled` | `Loading`, optional leading icon
 - Auto Layout: horizontal, padding `12–16` vertical / `24` horizontal, hug height, fill width optional
-- Fill Primary, text On-Primary, pill radius, Card elevation
+- `primaryButton` gradient, text On-Primary, pill radius; pressed = scale + dark veil; disabled = 45% opacity
 
 ### Secondary Button
-- Variants: `Default` | `Pressed` | `Disabled`
-- Surface fill, 1.5 border Border, text Primary text, pill
+- Variants: `Default` | `Pressed` | `Disabled`, optional leading icon
+- Surface fill, 1px Border (Primary when pressed), text Primary text, pill
+
+### Pressable Scale
+- `PressableScale` is the shared press feedback: spring scale-down while held (`motion.pressScale` for buttons, `motion.pressScaleCard` for cards). Use it instead of opacity-only touchables for new tappable surfaces.
+
+### Safe Walk Hero Card
+- Inactive: `important` gradient card with a "Start Safe Walk" pill.
+- Active: surface card with a status border and pulsing dot. The status text comes only from the server session state (`active` / `check_in_pending` / `sos`); never show "active" before the server confirms.
 
 ### SOS Button
 - Variants: `Idle` | `Holding`
@@ -132,7 +144,26 @@ Recreate each as a Figma component. Props map 1:1 to RN props in `components/des
 
 ### Modal Bottom Sheet
 - Variants: `Collapsed` | `Half` | `Expanded` (height 35% / 45% / 70%)
-- Handle 40×4, title, content slot; scrim `#111827` @ 32%
+- Handle 40×4, title, content slot; scrim `#111113` @ 32%
+
+---
+
+## Motion & feedback
+
+| Token (`motion.*`) | Value | Use |
+| --- | --- | --- |
+| `micro` / `fast` | 150 / 180 ms | Press, small state changes |
+| `normal` | 220 ms | Component transitions, overlay fade-in |
+| `slow` | 280 ms | Stack screen transitions, overlay fade-out |
+| `toastIn` / `toastOut` | 260 / 200 ms | Toast enter / exit |
+| `toastVisibleMs` | 3600 ms | Toast auto-dismiss |
+| `stagger` | 60 ms | Home section entrance |
+| `pressSpring` | damping 18 · stiffness 320 · mass 0.6 | Press scale |
+
+- **Reduce motion:** every animation checks `useReducedMotion()`; tabs and stack switch to `none`, press scale and pulses are skipped, overlays use a plain fade.
+- **Tabs:** `shift` animation plus an animated pill behind the active icon.
+- **Toasts:** `useToast().show({ tone, title, message })` with tones `success` / `warning` / `error` / `info`. One at a time, top of screen, tap to dismiss, announced to screen readers, and they never block touches below them. On iOS they render above native modals; on Android they render **under** an open RN `Modal`, so keep `Alert` for messages raised from inside a sheet or modal, for confirmations, and for anything safety-critical.
+- **Safe Walk activation:** `SafeWalkActivationOverlay` (non-interactive) + success haptic + `assets/sounds/safe-walk-chime.wav`. Fires only once per server session, only within 2 min of a confirmed `startSafeWalk` (not on resume, SMS-only fallback, or permission-denied paths), only while the app is in the foreground. The chime respects the silent switch / ringer mode and can be turned off in Settings → "Safe Walk start sound" (`@SafeRoute:safeWalkChime`).
 
 ---
 

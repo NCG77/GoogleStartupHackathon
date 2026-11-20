@@ -195,7 +195,9 @@ const MapDisplay = ({
                 styles.reviewDot,
                 {
                   backgroundColor: pin.color,
-                  borderColor: "#fff",
+                  borderColor: pin.verified || pin.status === "verified" ? "#fff" : "#f59e0b",
+                  borderWidth: pin.verified || pin.status === "verified" ? 1.5 : 2,
+                  opacity: pin.verified || pin.status === "verified" ? 1.0 : 0.75,
                 },
               ]}
             />

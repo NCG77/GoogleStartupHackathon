@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
 
     borderRadius: radius.full,
 
-    backgroundColor: "rgba(244, 63, 94, 0.35)",
+    backgroundColor: "rgba(224, 53, 43, 0.28)",
   },
 
   glowCompact: {
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
 
     borderWidth: 2,
 
-    borderColor: "rgba(244, 63, 94, 0.45)",
+    borderColor: "rgba(224, 53, 43, 0.4)",
   },
 
   rippleCompact: {

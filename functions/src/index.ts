@@ -5,6 +5,8 @@ import {
   onDocumentWritten,
 } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 import {
   getFirestore,
   FieldValue,
@@ -29,10 +31,7 @@ import {
   isRateLimited,
 } from "../../core/trust";
 import {
-  generateRoutes as searchRoutes,
   haversineM,
-  type GraphEdge,
-  type GraphNode,
 } from "../../core/routeOptimization";
 
 initializeApp();
@@ -47,8 +46,32 @@ function requireAuth(uid: string | undefined): string {
   return uid;
 }
 
+/**
+ * App Check guard. Applied to all 16 callables in this file.
+ *
+ * STATUS: server-side mechanism complete, DISABLED by default.
+ *
+ * Enabling requires BOTH halves:
+ *   1. Server (done)  — this guard, activated via ENFORCE_APP_CHECK=true
+ *   2. Client (TODO)  — the app must call initializeAppCheck() with a
+ *                       Play Integrity (Android) / DeviceCheck (iOS)
+ *                       provider so a token rides along with each call.
+ *
+ * WARNING: setting ENFORCE_APP_CHECK=true before the client half ships
+ * will reject EVERY callable request, because no token is being sent.
+ * Verify on a real device build before enabling — the emulator does not
+ * exercise this path.
+ */
+function requireAppCheck(request: { app?: unknown }) {
+  const enforce = process.env.ENFORCE_APP_CHECK === "true";
+  if (enforce && !request.app) {
+    throw new HttpsError("unauthenticated", "App Check verification required.");
+  }
+}
+
 /** GET /safety-score — callable calculateSafetyScore */
 export const calculateSafetyScore = onCall(async (request) => {
+  requireAppCheck(request);
   requireAuth(request.auth?.uid);
   const { latitude, longitude, departAtMs } = request.data as {
     latitude: number;
@@ -81,96 +104,7 @@ export const calculateSafetyScore = onCall(async (request) => {
   };
 });
 
-/** POST /route — callable generateRoutes. The client also runs the same planner. */
-export const generateRoutes = onCall(async (request) => {
-  requireAuth(request.auth?.uid);
-  const { origin, destination, departAtMs } = request.data as {
-    origin: { latitude: number; longitude: number };
-    destination: { latitude: number; longitude: number };
-    departAtMs: number;
-  };
-  const originHash = encodeGeohash(origin.latitude, origin.longitude, 6);
-  const segments = await db
-    .collection("road_segments")
-    .where("geohash6", "==", originHash)
-    .limit(400)
-    .get();
-  const nodes: Record<string, GraphNode> = {};
-  const edges: GraphEdge[] = [];
-  segments.docs.forEach((doc) => {
-    const row = doc.data();
-    const fromId = String(row.fromNodeId);
-    const toId = String(row.toNodeId);
-    nodes[fromId] = {
-      id: fromId,
-      latitude: row.fromLat,
-      longitude: row.fromLng,
-    };
-    nodes[toId] = {
-      id: toId,
-      latitude: row.toLat,
-      longitude: row.toLng,
-    };
-    edges.push({
-      id: doc.id,
-      from: fromId,
-      to: toId,
-      lengthM: row.lengthM,
-      speedKmh: row.speedKmh,
-      safetyScore: row.safetyScore,
-      lighting: row.lighting ?? null,
-      crowd: row.crowd ?? null,
-    });
-  });
-  if (edges.length === 0) {
-    return {
-      routes: [],
-      segmentCount: 0,
-      departAtMs,
-      destination,
-    };
-  }
-  const nearest = (point: { latitude: number; longitude: number }) => {
-    let bestId = Object.keys(nodes)[0];
-    let best = Infinity;
-    for (const node of Object.values(nodes)) {
-      const distance = haversineM(point, node);
-      if (distance < best) {
-        best = distance;
-        bestId = node.id;
-      }
-    }
-    return bestId;
-  };
-  const searched = searchRoutes(
-    { nodes, edges },
-    nearest(origin),
-    nearest(destination)
-  );
-  const cards = (["safest", "balanced", "fastest"] as const).flatMap((mode) => {
-    const path = searched[mode];
-    if (!path) return [];
-    return [
-      {
-        mode,
-        title:
-          mode === "safest"
-            ? "Safest Route"
-            : mode === "balanced"
-              ? "Balanced Route"
-              : "Fastest Route",
-        distanceM: path.distanceM,
-        etaMinutes: path.etaMinutes,
-        safetyScore: path.safetyScore,
-        lighting: path.lighting,
-        crowd: path.crowd,
-        confidence: null,
-        nodeIds: path.nodeIds,
-      },
-    ];
-  });
-  return { routes: cards, segmentCount: edges.length, departAtMs };
-});
+
 
 /** Private report → author mapping. Readable by the author only. */
 const REPORT_AUTHORS = "report_authors";
@@ -183,6 +117,7 @@ async function reportAuthorId(reportId: string): Promise<string | null> {
 
 /** POST /report — writes the report, then verifyReport adjusts trust. */
 export const verifyReport = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = request.data as {
     latitude: number;
@@ -338,6 +273,7 @@ export const onReportCreated = onDocumentCreated(
 
 /** Phase 5 — mark a report verified/rejected (Admin SDK; call from trusted moderation). */
 export const moderateReport = onCall(async (request) => {
+  requireAppCheck(request);
   requireAuth(request.auth?.uid);
   const { reportId, status } = request.data as {
     reportId: string;
@@ -366,6 +302,13 @@ export const moderateReport = onCall(async (request) => {
       userId: authorId,
       delta: 8,
       reason: "accurate_report",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } else if (status === "rejected" && authorId) {
+    await db.collection("trust_logs").add({
+      userId: authorId,
+      delta: -15,
+      reason: "rejected_report_penalty",
       createdAt: FieldValue.serverTimestamp(),
     });
   }
@@ -478,6 +421,13 @@ function sessionCopy(
       return {
         title: "Safety check-in missed",
         body: `${walkerName} didn't respond to a safety check-in. Open to see their last location.`,
+      };
+    case "checkin_ok":
+      return {
+        title: `${walkerName} says they're safe`,
+        body: walk
+          ? `${walkerName} confirmed they're okay after the missed check-in. Their Safe Walk continues.`
+          : `${walkerName} confirmed they're okay after the missed check-in.`,
       };
     case "ended":
       return {
@@ -697,6 +647,7 @@ async function createAndDispatchNotification(
   const tokens = [...new Set(allTokens.filter(isExpoToken))].slice(0, 100);
   const result = await sendExpo(tokens, input.title, input.body, {
     ...input.data,
+    type: input.type,
     route: input.route,
     notificationId: id,
   });
@@ -784,6 +735,7 @@ function sendInvitePush(input: {
 
 /** Creates a token-bound guardian invitation. Guardian writes are callable-only. */
 export const createGuardianInvite = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const existingId = optionalString(data.connectionId, 128);
@@ -903,6 +855,7 @@ export const createGuardianInvite = onCall(async (request) => {
 export const inviteGuardian = createGuardianInvite;
 
 export const acceptGuardianInvite = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const inviteId = requiredString(data.inviteId, "inviteId", 128);
@@ -960,6 +913,7 @@ export const acceptGuardianInvite = onCall(async (request) => {
 });
 
 export const revokeGuardian = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const guardianId = requiredString(
     (request.data as Record<string, unknown> | undefined)?.guardianId,
@@ -1097,6 +1051,11 @@ async function createSafetySession(
     });
     return true;
   });
+  if (created) {
+    await closeSupersededSessions(ownerId, kind, sessionId).catch((error) =>
+      console.warn("Closing superseded sessions failed", error)
+    );
+  }
   const copy = sessionCopy(kind, "started", walkerName, destinationLabel);
   const deliveries = created
     ? await notifyParticipants({
@@ -1124,11 +1083,13 @@ async function createSafetySession(
 
 /** POST /safe-walk/start */
 export const startSafeWalk = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   return createSafetySession(uid, "safe_walk", request.data ?? {});
 });
 
 export const startLiveShare = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   return createSafetySession(uid, "live_share", request.data ?? {});
 });
@@ -1188,6 +1149,7 @@ async function publishSafetyEventInternal(
   let walkerName = "Someone you trust";
   let destinationLabel: string | null = null;
   let state: SafetySessionState = "active";
+  let previousState = "active";
   const duplicate = await db.runTransaction(async (transaction) => {
     const snap = await transaction.get(ref);
     if (!snap.exists) throw new HttpsError("not-found", "Safety session not found.");
@@ -1206,6 +1168,7 @@ async function publishSafetyEventInternal(
     const eventRef = ref.collection("events").doc(id);
     const existing = await transaction.get(eventRef);
     const currentState = String(snap.get("state") ?? "active");
+    previousState = currentState;
     if (
       !existing.exists &&
       ["completed", "cancelled", "expired"].includes(currentState)
@@ -1253,8 +1216,11 @@ async function publishSafetyEventInternal(
     );
     return false;
   });
+  // checkin_ok is routine, except as the all-clear after guardians were alerted.
+  const allClear = type === "checkin_ok" && previousState === "sos";
   const shouldNotify =
-    !duplicate && !["location", "checkin_ok", "checkin_requested"].includes(type);
+    !duplicate &&
+    (allClear || !["location", "checkin_ok", "checkin_requested"].includes(type));
   let recipients = participantIds.filter((id) => id !== uid);
   if (type === "guardian_acknowledged") {
     recipients = recipients.filter((id) => id === ownerId);
@@ -1269,9 +1235,12 @@ async function publishSafetyEventInternal(
         type: `safety_${type}`,
         title: copy.title,
         body: copy.body,
+        // The owner can't open their own LiveWalkViewer; send them to their live session.
         route:
           type === "guardian_acknowledged"
-            ? "/(tabs)/alerts"
+            ? kind === "safe_walk"
+              ? "/(tabs)/safewalk"
+              : "/(tabs)/navigate"
             : `/LiveWalkViewer?sessionId=${sessionId}&collection=routes`,
         data: { sessionId, eventType: type, kind },
         includeOwner: true,
@@ -1287,7 +1256,38 @@ async function publishSafetyEventInternal(
   };
 }
 
+/**
+ * A walker has one live session per kind. Starting a new one closes any older
+ * open session (e.g. a walk whose screen was lost) so guardians aren't left
+ * watching a stale walk.
+ */
+async function closeSupersededSessions(
+  ownerId: string,
+  kind: SafetySessionKind,
+  keepSessionId: string
+) {
+  const open = await db
+    .collection("routes")
+    .where("userId", "==", ownerId)
+    .where("state", "in", OPEN_ROUTE_STATES)
+    .get();
+  const stale = open.docs.filter(
+    (doc) => doc.id !== keepSessionId && String(doc.get("kind") ?? "safe_walk") === kind
+  );
+  await Promise.all(
+    stale.map((doc) =>
+      publishSafetyEventInternal(ownerId, {
+        sessionId: doc.id,
+        type: "ended",
+        eventId: `${doc.id}-superseded`,
+        data: { reason: "superseded", supersededBy: keepSessionId },
+      }).catch((error) => console.warn(`Could not close ${doc.id}`, error))
+    )
+  );
+}
+
 export const publishSafetyEvent = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   return publishSafetyEventInternal(uid, request.data ?? {});
 });
@@ -1339,6 +1339,7 @@ export const publishLiveShareEvent = publishSafetyEvent;
 
 /** Compatibility endpoint for the original boolean check-in contract. */
 export const safeWalkCheckin = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const ok = data.ok === true;
@@ -1459,6 +1460,7 @@ async function alertNearbyHelpers(input: {
 
 /** POST /sos */
 export const activateSOS = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const id = data.eventId == null ? randomUUID() : eventId(data.eventId);
@@ -1571,6 +1573,7 @@ const EMERGENCY_EVENTS = new Set<EmergencyEventType>([
 ]);
 
 export const publishEmergencyEvent = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const emergencyId = requiredString(data.emergencyId, "emergencyId", 128);
@@ -1704,7 +1707,7 @@ export const publishEmergencyEvent = onCall(async (request) => {
         body: copy.body,
         route:
           type === "guardian_acknowledged"
-            ? "/(tabs)/alerts"
+            ? "/(tabs)/SOS"
             : `/LiveWalkViewer?sessionId=${emergencyId}&collection=emergencies`,
         data: { emergencyId, eventType: type },
         includeOwner: uid !== ownerId,
@@ -1721,6 +1724,7 @@ export const publishEmergencyEvent = onCall(async (request) => {
 });
 
 export const markNotificationRead = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const notificationId = requiredString(
     (request.data as Record<string, unknown> | undefined)?.notificationId,
@@ -1738,6 +1742,27 @@ export const markNotificationRead = onCall(async (request) => {
     if (!snap.get("readAt")) transaction.update(ref, { readAt });
   });
   return { notificationId, readAtMs: readAt.toMillis() };
+});
+
+/** Deletes all of the caller's notifications (the Alerts tab "Clear all"). */
+export const clearNotifications = onCall(async (request) => {
+  requireAppCheck(request);
+  const uid = requireAuth(request.auth?.uid);
+  let deleted = 0;
+  for (;;) {
+    const page = await db
+      .collection("notifications")
+      .where("userId", "==", uid)
+      .limit(400)
+      .get();
+    if (page.empty) break;
+    const batch = db.batch();
+    page.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    deleted += page.size;
+    if (page.size < 400) break;
+  }
+  return { deleted };
 });
 
 /** Compatibility helper retained for existing server imports. */
@@ -1855,3 +1880,102 @@ export const expireStaleSafetySessions = onSchedule(
     }
   },
 );
+
+/**
+ * DPDP Act 2023 Compliance: Account Deletion
+ * Cleanses user data, relations, reports authorship, and authentications.
+ */
+export const deleteAccount = onCall(async (request) => {
+  const uid = requireAuth(request.auth?.uid);
+  requireAppCheck(request);
+
+  // 1. Delete presence
+  await db.collection("presence").doc(uid).delete().catch(() => {});
+
+  // 2. Delete user profile
+  await db.collection("users").doc(uid).delete().catch(() => {});
+
+  // 3. Delete user notifications
+  const notifs = await db.collection("notifications").where("userId", "==", uid).limit(500).get();
+  if (!notifs.empty) {
+    const b1 = db.batch();
+    notifs.docs.forEach((d) => b1.delete(d.ref));
+    await b1.commit().catch(() => {});
+  }
+
+  // 4. Delete guardians relationships
+  const asUser = await db.collection("guardians").where("userId", "==", uid).limit(100).get();
+  const asGuardian = await db.collection("guardians").where("guardianUserId", "==", uid).limit(100).get();
+  const allGuardians = [...asUser.docs, ...asGuardian.docs];
+  if (allGuardians.length > 0) {
+    const b2 = db.batch();
+    allGuardians.forEach((d) => b2.delete(d.ref));
+    await b2.commit().catch(() => {});
+  }
+
+  // 5. Remove from report_authors
+  const authors = await db.collection("report_authors").where("authorId", "==", uid).limit(200).get();
+  if (!authors.empty) {
+    const b3 = db.batch();
+    authors.docs.forEach((d) => b3.delete(d.ref));
+    await b3.commit().catch(() => {});
+  }
+
+  // 6. Delete user routes
+  const routes = await db.collection("routes").where("ownerId", "==", uid).limit(100).get();
+  if (!routes.empty) {
+    const b4 = db.batch();
+    routes.docs.forEach((d) => b4.delete(d.ref));
+    await b4.commit().catch(() => {});
+  }
+
+  // 7. Delete SOS storage clips if present
+  try {
+    const bucket = getStorage().bucket();
+    await bucket.deleteFiles({ prefix: `sos/${uid}/` });
+  } catch (err) {
+    console.warn("Storage deletion error", err);
+  }
+
+  // 8. Delete Firebase Auth user
+  try {
+    await getAuth().deleteUser(uid);
+  } catch (err) {
+    console.warn("Auth deletion error", err);
+  }
+
+  return { success: true };
+});
+
+/**
+ * DPDP Act 2023 Compliance: User Data Export
+ * Emits portable JSON bundle containing all stored personal data.
+ */
+export const exportUserData = onCall(async (request) => {
+  const uid = requireAuth(request.auth?.uid);
+  requireAppCheck(request);
+
+  const [userSnap, notifsSnap, guardiansSnap, routesSnap, reportsSnap] = await Promise.all([
+    db.collection("users").doc(uid).get(),
+    db.collection("notifications").where("userId", "==", uid).limit(200).get(),
+    db.collection("guardians").where("userId", "==", uid).limit(50).get(),
+    db.collection("routes").where("ownerId", "==", uid).limit(50).get(),
+    db.collection("report_authors").where("authorId", "==", uid).limit(100).get(),
+  ]);
+
+  const reportIds = reportsSnap.docs.map((d) => d.id);
+  const reportsData: Record<string, unknown>[] = [];
+  for (const rid of reportIds) {
+    const r = await db.collection("reports").doc(rid).get();
+    if (r.exists) reportsData.push({ id: r.id, ...(r.data() || {}) });
+  }
+
+  return {
+    exportedAt: new Date().toISOString(),
+    profile: userSnap.exists ? userSnap.data() : null,
+    guardians: guardiansSnap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })),
+    routes: routesSnap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })),
+    reports: reportsData,
+    notifications: notifsSnap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })),
+  };
+});

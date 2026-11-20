@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// SafeRoute Storage rules.
+//
+// Writes are scoped to the authenticated user's own SOS evidence path. Reads
+// are server-only by default; guardians fetch audio via a signed URL that the
+// client stores on the emergency doc after upload. This keeps raw files from
+// being enumerable by anyone with a Firebase Auth token.
+service firebase.storage {
+  match /b/{bucket}/o {
+    // SOS audio evidence: sos/{uid}/{eventId}/clip.m4a
+    //
+    // Only the owner can create; reads are gated (guardians rely on the
+    // download URL stored on the emergency doc, which Firestore rules protect).
+    match /sos/{uid}/{eventId}/{file} {
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 20 * 1024 * 1024  // 20 MB cap per clip
+        && request.resource.contentType.matches("audio/.*");
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Everything else is closed by default. Introduce explicit paths as
+    // features need them (profile pictures, report attachments, etc.).
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

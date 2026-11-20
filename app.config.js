@@ -55,11 +55,18 @@ export default ({ config }) => ({
       "expo-notifications",
       {
         icon: "./assets/images/icon.png",
-        color: "#4F46E5",
+        color: "#800020",
         defaultChannel: "safety-alerts",
       },
     ],
     "expo-speech-recognition",
+    [
+      "expo-audio",
+      {
+        microphonePermission:
+          "Allow $(PRODUCT_NAME) to use the microphone during an SOS alert so a short audio clip can be recorded for your guardians as evidence.",
+      },
+    ],
     [
       "expo-location",
       {

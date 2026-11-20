@@ -1,26 +1,19 @@
 """
-Train XGBRegressor on Mumbai road safety features.
+Legacy XGBoost Training Script (Retired).
 
-Target: continuous safety_score (0–100)
-Features: lighting_score, police_dist, crime_score, hospital_dist
-
-  python -m ml.train_xgboost
+The XGBoost model has been retired in SafeRoute 2.0.
+The previous model was trained with the target (safety_score) computed as a
+closed-form function of three of its four input features, exhibiting circular target leakage.
+SafeRoute 2.0 uses Safety Score v2 (axiomatic weighted geometric mean).
 """
-from __future__ import annotations
+import sys
 
-import json
-import pickle
-import time
-from pathlib import Path
+def main():
+    print("XGBoost training is retired. SafeRoute uses axiomatic Safety Score v2 (ml/predict.py).")
+    sys.exit(0)
 
-import numpy as np
-import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
-from xgboost import XGBRegressor
-
-from .feature_importance import save_feature_importance_plot
-from .predict import FEATURE_COLS, MODEL_PATH, TARGET_COL
+if __name__ == "__main__":
+    main()
 
 ML_DIR = Path(__file__).resolve().parent
 DATA_CSV = ML_DIR.parent / "data" / "processed" / "road_safety_scores.csv"

@@ -11,6 +11,9 @@ expo-env.d.ts
 
 # Native
 .kotlin/
+**/build/
+**/.cxx/
+*.class
 *.orig.*
 *.jks
 *.p8
@@ -31,9 +34,14 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*
-!.env.example
-!.env.sample
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+.env
 saferoute-758ad-firebase-adminsdk-fbsvc-a173ca1fb1.json
 *-firebase-adminsdk-*.json
 
@@ -56,26 +64,20 @@ data/processed/**
 !data/processed/community_reports.csv
 !data/processed/road_safety_scores.csv
 !data/processed/lighting_meta.json
+!data/processed/scoring_comparison_summary.json
+!data/processed/scoring_comparison.csv
 
 # Firebase CLI cache
 .firebase/
 
-# Google & Firebase Services & Credentials
-google-services.json
-**/google-services.json
-GoogleService-Info.plist
-**/GoogleService-Info.plist
-
-# Production keystores
-*.keystore
-!android/app/debug.keystore
-
-# Local module build outputs
-**/build/
-.gradle/
-*.class
-*.dex
+# Cloud Functions build output (rebuilt by firebase.json predeploy)
+functions/lib/
 
 # IDE
 .idea/
 
+# Firebase config — contains a live API key, keep out of the repo
+# until the key is restricted in the GCP console. Download from:
+# Firebase console > Project settings > Your apps > google-services.json
+google-services.json
+android/app/google-services.json

@@ -51,14 +51,6 @@
       ]
     },
     {
-      "collectionGroup": "road_segments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "geohash6", "order": "ASCENDING" },
-        { "fieldPath": "safetyScore", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "routes",
       "queryScope": "COLLECTION",
       "fields": [

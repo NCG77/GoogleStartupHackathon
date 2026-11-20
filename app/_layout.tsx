@@ -1,5 +1,11 @@
+import { ToastProvider } from "@/components/feedback/ToastProvider";
 import { paperThemeFor } from "@/constants/paperTheme";
-import { darkColors, lightColors } from "@/constants/theme";
+import {
+  darkColors,
+  lightColors,
+  motion,
+  typography,
+} from "@/constants/theme";
 import { AlertsBadgeProvider } from "@/hooks/useAlertsBadge";
 import { AppearanceProvider, useAppearance } from "@/hooks/useAppearance";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -24,6 +30,7 @@ import { SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Provider as PaperProvider } from "react-native-paper";
+import { useReducedMotion } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
@@ -38,6 +45,7 @@ function RootNavigator() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (error) throw error;
@@ -70,88 +78,96 @@ function RootNavigator() {
       <SafeAreaProvider>
         <StatusBar style={isDark ? "light" : "dark"} />
         <ThemeProvider value={navTheme}>
-          <ProductTourProvider>
-            <Stack
-              screenOptions={{
-                animation: "fade_from_bottom",
-                animationDuration: 220,
-                contentStyle: {
-                  backgroundColor: canvas,
-                },
-              }}
-            >
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="Onboarding"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="Permissions"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="Login" options={{ headerShown: false }} />
-              <Stack.Screen name="Signup" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="GuardianInvite"
-                options={{ headerShown: false, presentation: "modal" }}
-              />
-              <Stack.Screen
-                name="LiveWalkViewer"
-                options={{
-                  headerShown: false,
-                  presentation: "fullScreenModal",
+          <ToastProvider>
+            <ProductTourProvider>
+              <Stack
+                screenOptions={{
+                  animation: reduceMotion ? "none" : "fade_from_bottom",
+                  animationDuration: motion.slow,
+                  contentStyle: {
+                    backgroundColor: canvas,
+                  },
                 }}
-              />
-              <Stack.Screen
-                name="LiveLocationShareScreen"
-                options={{ headerShown: false, presentation: "modal" }}
-              />
-              <Stack.Screen
-                name="LiveNavigation"
-                options={{
-                  headerShown: false,
-                  presentation: "fullScreenModal",
-                }}
-              />
-              <Stack.Screen
-                name="RouteComparison"
-                options={{
-                  headerShown: false,
-                  presentation: "fullScreenModal",
-                }}
-              />
-              <Stack.Screen
-                name="SavedPlacesScreen"
-                options={{ title: "Saved Places" }}
-              />
-              <Stack.Screen
-                name="CommunityReport"
-                options={{ headerShown: false, presentation: "modal" }}
-              />
-              <Stack.Screen
-                name="SafeWalkLive"
-                options={{
-                  headerShown: false,
-                  presentation: "fullScreenModal",
-                }}
-              />
-              <Stack.Screen
-                name="SafeWalkGuardian"
-                options={{
-                  headerShown: false,
-                  presentation: "card",
-                }}
-              />
-              <Stack.Screen
-                name="SafeWalkReview"
-                options={{
-                  headerShown: false,
-                  presentation: "card",
-                }}
-              />
-            </Stack>
-          </ProductTourProvider>
+              >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="Onboarding"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Permissions"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="Login" options={{ headerShown: false }} />
+                <Stack.Screen name="Signup" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="GuardianInvite"
+                  options={{ headerShown: false, presentation: "modal" }}
+                />
+                <Stack.Screen
+                  name="LiveWalkViewer"
+                  options={{
+                    headerShown: false,
+                    presentation: "fullScreenModal",
+                  }}
+                />
+                <Stack.Screen
+                  name="LiveLocationShareScreen"
+                  options={{ headerShown: false, presentation: "modal" }}
+                />
+                <Stack.Screen
+                  name="LiveNavigation"
+                  options={{
+                    headerShown: false,
+                    presentation: "fullScreenModal",
+                  }}
+                />
+                <Stack.Screen
+                  name="RouteComparison"
+                  options={{
+                    headerShown: false,
+                    presentation: "fullScreenModal",
+                  }}
+                />
+                <Stack.Screen
+                  name="SavedPlacesScreen"
+                  options={{
+                    title: "Saved Places",
+                    headerShadowVisible: false,
+                    headerTitleStyle: {
+                      fontFamily: typography.fontFamily.semibold,
+                    },
+                  }}
+                />
+                <Stack.Screen
+                  name="CommunityReport"
+                  options={{ headerShown: false, presentation: "modal" }}
+                />
+                <Stack.Screen
+                  name="SafeWalkLive"
+                  options={{
+                    headerShown: false,
+                    presentation: "fullScreenModal",
+                  }}
+                />
+                <Stack.Screen
+                  name="SafeWalkGuardian"
+                  options={{
+                    headerShown: false,
+                    presentation: "card",
+                  }}
+                />
+                <Stack.Screen
+                  name="SafeWalkReview"
+                  options={{
+                    headerShown: false,
+                    presentation: "card",
+                  }}
+                />
+              </Stack>
+            </ProductTourProvider>
+          </ToastProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </PaperProvider>

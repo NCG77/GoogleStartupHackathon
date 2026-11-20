@@ -55,8 +55,8 @@ export function LiveMiniMap({
         <LinearGradient
           colors={
             isDark
-              ? ["#1E1B4B", "#312E81", "#4338CA"]
-              : ["#EEF2FF", "#C7D2FE", "#A5B4FC"]
+              ? ["#1C1C20", "#2A0E16", "#3A0F1B"]
+              : ["#F7F5F4", "#F5E6E9", "#EBCBD2"]
           }
           style={styles.mapFrame}
         >

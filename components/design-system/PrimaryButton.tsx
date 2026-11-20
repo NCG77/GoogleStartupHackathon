@@ -1,22 +1,25 @@
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
-  Pressable,
   StyleSheet,
   Text,
+  View,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { motion, radius, spacing, touch, typography } from "@/constants/theme";
+import { radius, spacing, touch, typography } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { PressableScale } from "./PressableScale";
 
-export type PrimaryButtonProps = PressableProps & {
+export type PrimaryButtonProps = Omit<PressableProps, "style"> & {
   label: string;
   loading?: boolean;
   fullWidth?: boolean;
+  /** Optional leading icon. */
+  icon?: React.ComponentProps<typeof MaterialIcons>["name"];
   style?: StyleProp<ViewStyle>;
 };
 
@@ -24,6 +27,7 @@ export function PrimaryButton({
   label,
   loading = false,
   fullWidth = true,
+  icon,
   disabled,
   style,
   onPressIn,
@@ -31,83 +35,90 @@ export function PrimaryButton({
   ...rest
 }: PrimaryButtonProps) {
   const { colors: c, gradients: grads } = useAppTheme();
-  const isDisabled = disabled || loading;
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const animatePress = (down: boolean) => {
-    Animated.spring(scale, {
-      toValue: down ? motion.pressScale : 1,
-      useNativeDriver: true,
-      friction: 7,
-      tension: 160,
-    }).start();
-  };
+  const isDisabled = !!disabled || loading;
+  const [pressed, setPressed] = useState(false);
 
   return (
-    <Animated.View
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      disabled={isDisabled}
+      onPressIn={(e) => {
+        setPressed(true);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        setPressed(false);
+        onPressOut?.(e);
+      }}
       style={[
         styles.wrap,
         fullWidth && styles.fullWidth,
-        { transform: [{ scale }], shadowColor: c.primary },
         isDisabled && styles.disabled,
         style,
       ]}
+      {...rest}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !!isDisabled, busy: loading }}
-        disabled={isDisabled}
-        onPressIn={(e) => {
-          if (!isDisabled) animatePress(true);
-          onPressIn?.(e);
-        }}
-        onPressOut={(e) => {
-          if (!isDisabled) animatePress(false);
-          onPressOut?.(e);
-        }}
-        {...rest}
+      <LinearGradient
+        colors={[...grads.primaryButton]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.base}
       >
-        <LinearGradient
-          colors={[...grads.primaryButton]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.base}
-        >
-          {loading ? (
-            <ActivityIndicator color={c.textOnPrimary} />
-          ) : (
-            <Text style={[styles.label, { color: c.textOnPrimary }]}>
+        {pressed && !isDisabled ? (
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.pressedVeil]}
+          />
+        ) : null}
+        {loading ? (
+          <ActivityIndicator color={c.textOnPrimary} />
+        ) : (
+          <View style={styles.row}>
+            {icon ? (
+              <MaterialIcons name={icon} size={20} color={c.textOnPrimary} />
+            ) : null}
+            <Text
+              style={[styles.label, { color: c.textOnPrimary }]}
+              numberOfLines={1}
+            >
               {label}
             </Text>
-          )}
-        </LinearGradient>
-      </Pressable>
-    </Animated.View>
+          </View>
+        )}
+      </LinearGradient>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
     borderRadius: radius.pill,
-    overflow: "hidden",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 6,
   },
   fullWidth: {
     alignSelf: "stretch",
   },
   base: {
+    flexGrow: 1,
     minHeight: touch.buttonHeight,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.pill,
+    overflow: "hidden",
+  },
+  pressedVeil: {
+    backgroundColor: "rgba(0, 0, 0, 0.14)",
   },
   disabled: {
     opacity: 0.45,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   label: {
     fontFamily: typography.fontFamily.semibold,
