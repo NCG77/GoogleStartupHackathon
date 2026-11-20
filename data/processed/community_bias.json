@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "generated_at_ms": 1791196767758,
+  "source": "firestore",
+  "spread_m": 150.0,
+  "max_bias": 40.0,
+  "half_life_days": {
+    "harassment": 14.0,
+    "crime": 21.0,
+    "lighting": 30.0,
+    "infrastructure": 60.0,
+    "other": 21.0
+  },
+  "night_hours": [
+    19,
+    6
+  ],
+  "reports_total": 1,
+  "reports_used": 1,
+  "reports_by_category": {
+    "other": 1
+  },
+  "roads_affected": 0,
+  "bias": {},
+  "bias_day": {},
+  "bias_night": {}
+}
