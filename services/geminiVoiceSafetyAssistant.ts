@@ -12,7 +12,17 @@
  *   4. Deterministic fallback parser for 100% offline reliability.
  */
 
-import Constants from "expo-constants";
+function getGeminiApiKey(): string | undefined {
+  if (process.env.EXPO_PUBLIC_GEMINI_API_KEY) return process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Constants = require("expo-constants");
+    return (Constants?.default?.expoConfig?.extra || Constants?.expoConfig?.extra)?.geminiApiKey;
+  } catch {
+    return undefined;
+  }
+}
 
 export type VoiceIntent =
   | "distress_emergency"
@@ -58,6 +68,7 @@ const DISTRESS_PATTERNS = [
  * @returns VoiceAssistantResult with SOS dispatch action if distress detected, else null.
  */
 export function checkInstantDistress(transcript: string): VoiceAssistantResult | null {
+  if (!transcript || typeof transcript !== "string") return null;
   const normalized = transcript.trim().toLowerCase();
   for (const pattern of DISTRESS_PATTERNS) {
     if (pattern.test(normalized)) {
@@ -87,6 +98,15 @@ export function parseFallbackVoiceCommand(
   transcript: string,
   context?: VoiceCommandContext,
 ): VoiceAssistantResult {
+  if (!transcript || typeof transcript !== "string") {
+    return {
+      intent: "unknown",
+      isEmergency: false,
+      spokenResponse: "No voice command heard. SafeRoute is listening.",
+      confidence: 0.5,
+      modelUsed: "deterministic-voice-parser",
+    };
+  }
   const norm = transcript.toLowerCase();
 
   // 1. Distress check first
@@ -96,10 +116,14 @@ export function parseFallbackVoiceCommand(
   // 2. Reroute command
   if (
     norm.includes("safer") ||
+    norm.includes("safest") ||
     norm.includes("reroute") ||
     norm.includes("dark") ||
     norm.includes("avoid") ||
-    norm.includes("alternate")
+    norm.includes("alternate") ||
+    norm.includes("another way") ||
+    norm.includes("safe route") ||
+    norm.includes("well-lit path")
   ) {
     return {
       intent: "reroute_safest",
@@ -130,9 +154,11 @@ export function parseFallbackVoiceCommand(
   if (
     norm.includes("status") ||
     norm.includes("how far") ||
-    norm.includes("safe") ||
     norm.includes("eta") ||
-    norm.includes("where am i")
+    norm.includes("where am i") ||
+    norm.includes("am i safe") ||
+    norm.includes("is it safe") ||
+    norm.includes("safe here")
   ) {
     const eta = context?.etaMinutes ? `${context.etaMinutes} minutes` : "5 minutes";
     const light = context?.lightingStatus || "well-lit";
@@ -189,10 +215,7 @@ export async function processVoiceSafetyCommand(
     return instantEmergency;
   }
 
-  const apiKey =
-    process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    (Constants.expoConfig?.extra as { geminiApiKey?: string } | undefined)?.geminiApiKey;
+  const apiKey = getGeminiApiKey();
 
   if (!apiKey) {
     return parseFallbackVoiceCommand(transcript, context);

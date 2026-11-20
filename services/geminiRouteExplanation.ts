@@ -83,6 +83,18 @@ export function getFallbackRouteExplanation(params: RouteExplanationParams): str
   return `${prefix}${clauses.slice(0, -1).join(", ")}, and ${clauses[clauses.length - 1]}.`;
 }
 
+function getGeminiApiKey(): string | undefined {
+  if (process.env.EXPO_PUBLIC_GEMINI_API_KEY) return process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Constants = require("expo-constants");
+    return (Constants?.default?.expoConfig?.extra || Constants?.expoConfig?.extra)?.geminiApiKey;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Requests grounded Gemini 3.8 Flash natural-language route explanation.
  * Synthesizes complex road metrics into reassuring, grounded pedestrian guidance.
@@ -96,9 +108,7 @@ export async function explainRouteWithGemini(
   params: RouteExplanationParams,
   timeoutMs: number = 3500
 ): Promise<string> {
-  const apiKey =
-    process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
-    process.env.GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
 
   if (!apiKey) {
     return getFallbackRouteExplanation(params);

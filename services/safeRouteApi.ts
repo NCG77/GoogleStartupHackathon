@@ -39,6 +39,7 @@ export type SafeRouteCard = {
   time_weight?: number;
   explanation?: {
     title?: string;
+    summary?: string;
     reasons?: RouteReason[];
     confidence?: ConfidenceDetail;
     stats?: {

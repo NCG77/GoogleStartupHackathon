@@ -10,7 +10,17 @@
  * Paired with a deterministic heuristic fallback for offline or rate-limited environments.
  */
 
-import Constants from "expo-constants";
+function getGeminiApiKey(): string | undefined {
+  if (process.env.EXPO_PUBLIC_GEMINI_API_KEY) return process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Constants = require("expo-constants");
+    return (Constants?.default?.expoConfig?.extra || Constants?.expoConfig?.extra)?.geminiApiKey;
+  } catch {
+    return undefined;
+  }
+}
 
 export type HazardCategory =
   | "broken_streetlights"
@@ -142,10 +152,7 @@ export function getFallbackHazardVerification(
 export async function verifyHazardPhotoWithGemini(
   params: VerifyHazardPhotoParams,
 ): Promise<HazardVerificationResult> {
-  const apiKey =
-    process.env.EXPO_PUBLIC_GEMINI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    (Constants.expoConfig?.extra as { geminiApiKey?: string } | undefined)?.geminiApiKey;
+  const apiKey = getGeminiApiKey();
 
   if (!apiKey || !params.base64Image) {
     return getFallbackHazardVerification(params);

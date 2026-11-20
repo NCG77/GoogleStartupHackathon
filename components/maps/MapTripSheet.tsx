@@ -346,10 +346,10 @@ export function MapTripSheet({
             nestedScrollEnabled
             onContentSizeChange={(_, h) => measured(setMidH, midH)(h)}
           >
-            {whyReasons.length > 0 || (selected as any)?.explanation?.summary || (selected as any)?.summary ? (
+            {whyReasons.length > 0 || selected?.summary || selected?.explanation?.summary ? (
               <WhyThisRoute
                 title="Why we recommended it"
-                summary={(selected as any)?.explanation?.summary || (selected as any)?.summary}
+                summary={selected?.summary || selected?.explanation?.summary || undefined}
                 reasons={whyReasons}
                 style={styles.why}
               />
