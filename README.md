@@ -66,7 +66,7 @@ SafeRoute integrates Google's **Gemini 3.8 Flash** model across client and serve
 3. **Hands-Free / Voice-Activated Safety Assistant**:
    - Designed for night pedestrians walking with earphones without drawing attention to a phone screen.
    - **Dual-tier architecture**:
-     - **Tier 1 (0ms Instant Distress Scanner)**: Local regex scanner detecting critical emergency distress terms across English, Hindi, and Marathi (`help me`, `being followed`, `call police`, `bachao`, `madad`, `police ko bulao`). Dispatches immediate SOS alerts to guardians and nearby police with zero network latency.
+     - **Tier 1 (0ms Instant Distress Scanner)**: Local regex scanner detecting critical emergency distress terms across English, Hindi, and Marathi (`help me`, `being followed`, `call police`, `bachao`, `madad`, `choro`, `police ko bulao`, `koi peeche hai`). Dispatches immediate SOS alerts to guardians and nearby police with zero network latency.
      - **Tier 2 (Gemini 3.8 Flash Intent Engine)**: Natural-language command parser handling pedestrian navigation requests (`reroute to safer street`, `where is nearest police`, `status check`, `report hazard`).
    - Produces short, calming, low-volume earphone-ready audio responses.
    - Implemented via `services/geminiVoiceSafetyAssistant.ts`, `hooks/useVoiceSafetyAssistant.ts`, and integrated into `components/navigation/LiveNavigationHUD.tsx`.
@@ -77,7 +77,7 @@ SafeRoute integrates Google's **Gemini 3.8 Flash** model across client and serve
    - Categorizes risk level (`low`, `moderate`, `caution`) with actionable highlights and an earphone audio briefing script.
    - Implemented in `services/geminiNeighborhoodBriefing.ts`, `components/safety/NeighborhoodBriefingCard.tsx`, mounted on `app/(tabs)/Home.tsx` and `components/maps/MapTripSheet.tsx`.
 
-> Comprehensive schemas, prompt designs, error handling, and runnable examples are documented in [docs/GEMINI-SAFETY-FEATURES.md](docs/GEMINI-SAFETY-FEATURES.md).
+> Comprehensive schemas, prompt designs, error handling, runnable examples, and test matrices are documented in [docs/GEMINI-SAFETY-FEATURES.md](docs/GEMINI-SAFETY-FEATURES.md). Automated test suites are located in [tests/test_gemini_features.ts](tests/test_gemini_features.ts) and [tests/test_gemini_explainer.py](tests/test_gemini_explainer.py).
 
 ### Routing API endpoints
 
@@ -180,6 +180,30 @@ The `android/` project is committed. If you run `npx expo prebuild --clean`, re-
 
 `.github/workflows/monthly-lighting.yml` runs on the 5th and 20th of each month, pulls the latest VIIRS composite through Earth Engine, updates `data/processed/road_safety_scores.csv` and `lighting_meta.json`, commits the result and optionally hot-reloads the API. It needs the `EE_*` repository secrets.
 
+### 7. Testing and verification
+
+SafeRoute maintains automated test suites validating the Gemini 3.8 Flash safety intelligence suite and deterministic offline fallback guarantees:
+
+```bash
+# Run TypeScript / Node test suite (tests/test_gemini_features.ts - 10 unit & integration tests)
+npm test
+# or: npm run test:gemini
+
+# Run Python route explainer test suite (tests/test_gemini_explainer.py - 5 unit tests)
+npm run test:python
+```
+
+- **Client Safety Intelligence Suite (`tests/test_gemini_features.ts`)**:
+  - **Feature 1**: Route explanation metric grounding and offline graceful degradation without API key.
+  - **Feature 2**: Multimodal hazard photo classification, spam/selfie/meme rejection, and simulation presets (`SAMPLE_HAZARD_PRESETS`).
+  - **Feature 3**: Voice safety assistant 0ms instant distress trigger across English, Hindi (`bachao`, `madad`, `police ko bulao`), and Marathi (`choro`, `koi peeche hai`), navigation intent parsing (`reroute_safest`, `find_police`, `status_check`, `report_hazard`), and command presets.
+  - **Feature 4**: Dynamic neighborhood safety briefings, time-aware risk levels (`low`, `moderate`, `caution`), and async fallback execution.
+- **Routing Engine Suite (`tests/test_gemini_explainer.py`)**:
+  - Metric synthesis (delta minutes, VIIRS unlit service lanes avoided, police proximity).
+  - Road prospect and entrapment escape route synthesis.
+  - Offline degradation when `GEMINI_API_KEY` is omitted.
+  - Zero-hallucination constraint verification (never invents ungrounded landmarks or streets).
+
 ## Project structure
 
 ```
@@ -191,6 +215,7 @@ hooks/, tasks/  React hooks (including useVoiceSafetyAssistant) and background l
 functions/      Firebase Cloud Functions
 routing/        FastAPI routing service and gemini_explainer.py engine
 ml/             Risk model training, evaluation, community intelligence, lighting refresh
+tests/          Unit and integration test suites: Gemini safety suite (test_gemini_features.ts, test_gemini_explainer.py)
 data/processed/ Runtime data for the routing service
 docs/           SRS, Gemini safety suite (GEMINI-SAFETY-FEATURES.md), design system, guardian notes
 ```
