@@ -69,7 +69,7 @@ export async function createGuardianInvite(body: GuardianInviteRequest) {
     "createGuardianInvite"
   )(body);
   if (res.data?.inviteId) {
-    void analytics.guardianInvited(res.data.inviteId, body.role);
+    void analytics.guardianInvited(res.data.inviteId, body.relationship ?? undefined);
   }
   return res;
 }
@@ -79,8 +79,10 @@ export async function acceptGuardianInvite(body: AcceptGuardianInviteRequest) {
     AcceptGuardianInviteRequest,
     AcceptGuardianInviteResponse
   >(functions, "acceptGuardianInvite")(body);
-  if (res.data?.success) {
-    void analytics.guardianAccepted(body.token);
+  // Report inviteId, never inviteToken — the token is a one-time secret and
+  // must not leak into telemetry.
+  if (res.data?.status === "accepted") {
+    void analytics.guardianAccepted(body.inviteId);
   }
   return res;
 }

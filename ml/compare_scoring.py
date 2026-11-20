@@ -24,13 +24,31 @@ SCORES_CSV = ROOT / "data" / "processed" / "road_safety_scores.csv"
 OUTPUT_CSV = ROOT / "data" / "processed" / "scoring_comparison.csv"
 OUTPUT_SUMMARY = ROOT / "data" / "processed" / "scoring_comparison_summary.json"
 
-EPS = 0.05
-D0 = 1000.0
+# v2 scoring is IMPORTED from production, never reimplemented here.
+#
+# An earlier revision of this file carried its own copy of the v2 equation
+# with a hardcoded D0. That made the harness silently validate a duplicate
+# instead of the shipping code — changing D0 in ml/predict.py had no effect
+# on these results. Import, don't copy.
+from ml.predict import (  # noqa: E402
+    EPS,
+    D0,  # noqa: F401  (re-exported so the summary can record it)
+    W_CRIME,
+    W_LIGHT,
+    W_POLICE,
+    safety_score_v2,
+)
 
 
 def _clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
 
+
+# --- v1 baseline -----------------------------------------------------------
+# v1 is deliberately frozen here. It no longer exists in production (the rule
+# engine was replaced by Safety Score v2), so this is a historical reference
+# implementation kept solely so the comparison has something to compare to.
+# Do not "fix" it — it must keep reproducing the pre-v2 behaviour exactly.
 
 def police_score_v1(dist_m: float | None) -> float:
     if dist_m is None or (isinstance(dist_m, float) and np.isnan(dist_m)):
@@ -51,23 +69,14 @@ def score_v1(lighting: float, police_dist: float, crime: float) -> float:
     L = _clamp(float(lighting), 0.0, 1.0)
     P = police_score_v1(police_dist)
     C = _clamp(float(crime), 0.0, 100.0)
-    return float(100.0 * (0.35 * L + 0.35 * P + 0.30 * (1.0 - C / 100.0)))
+    return float(100.0 * (W_LIGHT * L + W_POLICE * P + W_CRIME * (1.0 - C / 100.0)))
 
 
-def police_score_v2(dist_m: float | None) -> float:
-    if dist_m is None or (isinstance(dist_m, float) and (np.isnan(dist_m) or math.isnan(dist_m))):
-        return EPS
-    return _clamp(math.exp(-float(dist_m) / D0), EPS, 1.0)
-
+# --- v2 (production) -------------------------------------------------------
 
 def score_v2_core(lighting: float, police_dist: float, crime: float) -> float:
-    L = _clamp(float(lighting), EPS, 1.0)
-    P = police_score_v2(police_dist)
-    C = _clamp(1.0 - float(crime) / 100.0, EPS, 1.0)
-
-    # v2-core: L 0.35, P 0.35, C 0.30 (weights sum to 1.0)
-    score = 100.0 * (L ** 0.35) * (P ** 0.35) * (C ** 0.30)
-    return float(_clamp(score, 0.0, 100.0))
+    """Thin pass-through to the production scorer. No logic lives here."""
+    return float(safety_score_v2(lighting, police_dist, crime))
 
 
 def compute_histogram(series: pd.Series) -> dict[str, int]:

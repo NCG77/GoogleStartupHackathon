@@ -28,6 +28,7 @@ import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -299,6 +300,14 @@ export default function HomeDashboard() {
   const openWalk = openWalks[0] ?? null;
 
   const onDestinationSelect = (place: DestinationPlace) => {
+    if (!isWithinMumbai(place.coordinate.latitude, place.coordinate.longitude)) {
+      Alert.alert(
+        "Outside Coverage Area",
+        `"${place.title}" is outside SafeRoute's Mumbai coverage area. Safety routing is available within Mumbai only in this beta.`,
+        [{ text: "OK" }],
+      );
+      return;
+    }
     setSearch(place.title);
     router.push({
       pathname: "/navigate",
@@ -402,7 +411,7 @@ export default function HomeDashboard() {
           >
             <MaterialIcons name="info-outline" size={24} color={c.primary} />
             <View style={{ flex: 1, marginLeft: spacing.sm }}>
-              <Text style={{ fontFamily: typography.fontFamily.semiBold, color: c.textPrimary, fontSize: 14 }}>
+              <Text style={{ fontFamily: typography.fontFamily.semibold, color: c.textPrimary, fontSize: 14 }}>
                 SafeRoute is in Mumbai Beta
               </Text>
               <Text style={{ fontFamily: typography.fontFamily.regular, color: c.textSecondary, fontSize: 12, marginTop: 2 }}>

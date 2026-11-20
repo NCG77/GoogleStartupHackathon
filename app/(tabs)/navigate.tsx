@@ -52,6 +52,7 @@ import {
   type LiveShareStartRequest,
 } from "../../core/guardianSafety";
 import { PRIVACY_SHARE_KEY } from "@/constants/preferences";
+import { isWithinMumbai } from "@/core/coverage";
 import { connectedGuardianIds, readGuardians } from "@/services/guardianSync";
 import NearestPlaceConfirmationModal from "../../components/maps/NearestPlaceConfirmationModal";
 import SafetyReviewModal from "../../components/maps/SafetyReviewModal";
@@ -857,6 +858,14 @@ const SafeMaps = () => {
    * @param {SearchResult} result - The selected search result object.
    */
   const selectSearchResult = (result: SearchResult) => {
+    if (!isWithinMumbai(result.coordinate.latitude, result.coordinate.longitude)) {
+      Alert.alert(
+        "Outside Coverage Area",
+        `"${result.title}" is outside SafeRoute's Mumbai coverage area. Safety routing and lighting maps are available within Mumbai only.`,
+        [{ text: "OK" }],
+      );
+      return;
+    }
     setSearchQuery(result.title);
     setShowSearchResults(false);
     clearNearbyPlaces();
@@ -982,8 +991,37 @@ const SafeMaps = () => {
    * @param {number} radius - Search radius in meters.
    * @returns {object} {score, status, reviews}
    */
+  /**
+   * Spatial memo for getAreaSafetyScore.
+   *
+   * The lookup is an O(n) scan over every community review with a haversine
+   * per review, so calling it once per route point froze the JS thread on
+   * long routes. Route points sit 50-200 m apart while the lookup radius is
+   * 500 m, so neighbouring points return near-identical results — quantising
+   * position to a ~55 m grid makes almost all of those calls cache hits.
+   *
+   * Grid error (~55 m) is ~10% of the 500 m radius, which is well inside the
+   * noise of the underlying review data.
+   */
+  const areaSafetyCache = useRef(
+    new Map<string, { score: number; status: string; reviews: typeof safetyReviews }>(),
+  );
+
+  // Any change to the review set invalidates every cached answer.
+  useEffect(() => {
+    areaSafetyCache.current.clear();
+  }, [safetyReviews]);
+
   const getAreaSafetyScore = useCallback(
     (latitude: number, longitude: number, radius = 500) => {
+      const GRID_DEG = 0.0005; // ~55 m at Mumbai's latitude
+      const key = `${Math.round(latitude / GRID_DEG)}:${Math.round(
+        longitude / GRID_DEG,
+      )}:${radius}`;
+
+      const cached = areaSafetyCache.current.get(key);
+      if (cached) return cached;
+
       const nearbyReviews = safetyReviews.filter((review) => {
         const distance = calculateDistance(
           { latitude, longitude },
@@ -992,19 +1030,23 @@ const SafeMaps = () => {
         return distance <= radius / 1000; // Convert radius to km for comparison
       });
 
+      let result;
       if (nearbyReviews.length === 0) {
-        return { score: 3, status: "unreviewed", reviews: [] };
+        result = { score: 3, status: "unreviewed", reviews: [] };
+      } else {
+        const avgRating =
+          nearbyReviews.reduce((sum, review) => sum + review.rating, 0) /
+          nearbyReviews.length;
+
+        let status = "safe";
+        if (avgRating <= 2) status = "dangerous";
+        else if (avgRating <= 3.5) status = "caution";
+
+        result = { score: avgRating, status, reviews: nearbyReviews };
       }
 
-      const avgRating =
-        nearbyReviews.reduce((sum, review) => sum + review.rating, 0) /
-        nearbyReviews.length;
-
-      let status = "safe";
-      if (avgRating <= 2) status = "dangerous";
-      else if (avgRating <= 3.5) status = "caution";
-
-      return { score: avgRating, status, reviews: nearbyReviews };
+      areaSafetyCache.current.set(key, result);
+      return result;
     },
     [safetyReviews],
   );
@@ -1022,8 +1064,37 @@ const SafeMaps = () => {
 
       const segmentSafety = [];
 
-      // Analyze more frequently along the route for better accuracy (every 5th coordinate)
-      for (let i = 0; i < coordinates.length; i += 5) {
+      // Sample at a FIXED DISTANCE interval, not a fixed point count.
+      //
+      // `overallSafety` below flips to "dangerous" on a SINGLE dangerous
+      // sample, so this is a rare-event detection problem, not an averaging
+      // one. A fixed point count makes detection resolution depend on route
+      // length: capping a 12 km route at 40 points spaces samples ~285 m
+      // apart, so a 200 m hazard is missed roughly 30% of the time.
+      //
+      // Sampling every 100 m keeps resolution constant regardless of length.
+      // The hard ceiling only guards pathologically long routes; the real
+      // cost fix is the spatial memo on getAreaSafetyScore above.
+      const SAMPLE_INTERVAL_M = 100;
+      const MAX_SAMPLES = 400;
+
+      let metresSinceSample = SAMPLE_INTERVAL_M; // force a sample at index 0
+      for (let i = 0; i < coordinates.length; i += 1) {
+        if (i > 0) {
+          metresSinceSample +=
+            calculateDistance(coordinates[i - 1], coordinates[i]) * 1000;
+        }
+
+        const isLast = i === coordinates.length - 1;
+        if (
+          !isLast &&
+          (metresSinceSample < SAMPLE_INTERVAL_M ||
+            segmentSafety.length >= MAX_SAMPLES)
+        ) {
+          continue;
+        }
+        metresSinceSample = 0;
+
         const coord = coordinates[i];
         const safety = getAreaSafetyScore(coord.latitude, coord.longitude, 500); // Check within 500m radius
 
@@ -1259,7 +1330,10 @@ const SafeMaps = () => {
 
     const candidates = uniqueRoutes.map((route) => ({
       id: route.id,
-      coordinates: route.coordinates,
+      coordinates:
+        route.coordinates.length > 80
+          ? downsamplePath(route.coordinates, 80)
+          : route.coordinates,
       distanceKm: route.distance,
       durationMin: route.duration,
     }));
@@ -1353,6 +1427,24 @@ const SafeMaps = () => {
     }
     if (!destinationCoord) {
       Alert.alert("Error", "Please select a destination first.");
+      return;
+    }
+
+    if (!isWithinMumbai(destinationCoord.latitude, destinationCoord.longitude)) {
+      Alert.alert(
+        "Outside Coverage Area",
+        "SafeRoute's safety scoring and night-lighting routes are currently exclusive to the Mumbai Metropolitan Region. Destinations outside Mumbai (such as Sehore / Bhopal) are not supported in this beta.",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
+    if (!isWithinMumbai(location.coords.latitude, location.coords.longitude)) {
+      Alert.alert(
+        "Outside Coverage Area",
+        "Your current location is outside the Mumbai Metropolitan Region. SafeRoute's safety features are currently active in Mumbai only.",
+        [{ text: "OK" }],
+      );
       return;
     }
 
@@ -1457,8 +1549,8 @@ const SafeMaps = () => {
         "Could not calculate routes. Please check your internet connection or try again later.",
       );
     } finally {
+      setIsCalculatingRoute(false);
       if (!isStale()) {
-        setIsCalculatingRoute(false);
         // Only show bottom sheet if explicitly requested
         if (showBottomSheetOnFinish) {
           animateBottomSheet(true);

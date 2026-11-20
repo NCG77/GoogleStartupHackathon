@@ -37,7 +37,7 @@ export function getFallbackRouteExplanation(params: RouteExplanationParams): str
 
   // 1. Prospect (road width & straightness)
   if (params.prospectScore && params.prospectScore >= 0.55) {
-    clauses.append ? clauses.push("stays on wider, open streets") : clauses.push("stays on wider, open streets");
+    clauses.push("stays on wider, open streets");
   }
 
   // 2. Lighting (VIIRS night lighting)

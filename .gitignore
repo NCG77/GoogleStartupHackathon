@@ -75,3 +75,9 @@ functions/lib/
 
 # IDE
 .idea/
+
+# Firebase config — contains a live API key, keep out of the repo
+# until the key is restricted in the GCP console. Download from:
+# Firebase console > Project settings > Your apps > google-services.json
+google-services.json
+android/app/google-services.json

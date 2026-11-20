@@ -46,6 +46,22 @@ function requireAuth(uid: string | undefined): string {
   return uid;
 }
 
+/**
+ * App Check guard. Applied to all 16 callables in this file.
+ *
+ * STATUS: server-side mechanism complete, DISABLED by default.
+ *
+ * Enabling requires BOTH halves:
+ *   1. Server (done)  — this guard, activated via ENFORCE_APP_CHECK=true
+ *   2. Client (TODO)  — the app must call initializeAppCheck() with a
+ *                       Play Integrity (Android) / DeviceCheck (iOS)
+ *                       provider so a token rides along with each call.
+ *
+ * WARNING: setting ENFORCE_APP_CHECK=true before the client half ships
+ * will reject EVERY callable request, because no token is being sent.
+ * Verify on a real device build before enabling — the emulator does not
+ * exercise this path.
+ */
 function requireAppCheck(request: { app?: unknown }) {
   const enforce = process.env.ENFORCE_APP_CHECK === "true";
   if (enforce && !request.app) {
@@ -55,6 +71,7 @@ function requireAppCheck(request: { app?: unknown }) {
 
 /** GET /safety-score — callable calculateSafetyScore */
 export const calculateSafetyScore = onCall(async (request) => {
+  requireAppCheck(request);
   requireAuth(request.auth?.uid);
   const { latitude, longitude, departAtMs } = request.data as {
     latitude: number;
@@ -100,6 +117,7 @@ async function reportAuthorId(reportId: string): Promise<string | null> {
 
 /** POST /report — writes the report, then verifyReport adjusts trust. */
 export const verifyReport = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = request.data as {
     latitude: number;
@@ -255,6 +273,7 @@ export const onReportCreated = onDocumentCreated(
 
 /** Phase 5 — mark a report verified/rejected (Admin SDK; call from trusted moderation). */
 export const moderateReport = onCall(async (request) => {
+  requireAppCheck(request);
   requireAuth(request.auth?.uid);
   const { reportId, status } = request.data as {
     reportId: string;
@@ -716,6 +735,7 @@ function sendInvitePush(input: {
 
 /** Creates a token-bound guardian invitation. Guardian writes are callable-only. */
 export const createGuardianInvite = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const existingId = optionalString(data.connectionId, 128);
@@ -835,6 +855,7 @@ export const createGuardianInvite = onCall(async (request) => {
 export const inviteGuardian = createGuardianInvite;
 
 export const acceptGuardianInvite = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const inviteId = requiredString(data.inviteId, "inviteId", 128);
@@ -892,6 +913,7 @@ export const acceptGuardianInvite = onCall(async (request) => {
 });
 
 export const revokeGuardian = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const guardianId = requiredString(
     (request.data as Record<string, unknown> | undefined)?.guardianId,
@@ -1061,11 +1083,13 @@ async function createSafetySession(
 
 /** POST /safe-walk/start */
 export const startSafeWalk = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   return createSafetySession(uid, "safe_walk", request.data ?? {});
 });
 
 export const startLiveShare = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   return createSafetySession(uid, "live_share", request.data ?? {});
 });
@@ -1263,6 +1287,7 @@ async function closeSupersededSessions(
 }
 
 export const publishSafetyEvent = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   return publishSafetyEventInternal(uid, request.data ?? {});
 });
@@ -1314,6 +1339,7 @@ export const publishLiveShareEvent = publishSafetyEvent;
 
 /** Compatibility endpoint for the original boolean check-in contract. */
 export const safeWalkCheckin = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const ok = data.ok === true;
@@ -1434,6 +1460,7 @@ async function alertNearbyHelpers(input: {
 
 /** POST /sos */
 export const activateSOS = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const id = data.eventId == null ? randomUUID() : eventId(data.eventId);
@@ -1546,6 +1573,7 @@ const EMERGENCY_EVENTS = new Set<EmergencyEventType>([
 ]);
 
 export const publishEmergencyEvent = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const emergencyId = requiredString(data.emergencyId, "emergencyId", 128);
@@ -1696,6 +1724,7 @@ export const publishEmergencyEvent = onCall(async (request) => {
 });
 
 export const markNotificationRead = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   const notificationId = requiredString(
     (request.data as Record<string, unknown> | undefined)?.notificationId,
@@ -1717,6 +1746,7 @@ export const markNotificationRead = onCall(async (request) => {
 
 /** Deletes all of the caller's notifications (the Alerts tab "Clear all"). */
 export const clearNotifications = onCall(async (request) => {
+  requireAppCheck(request);
   const uid = requireAuth(request.auth?.uid);
   let deleted = 0;
   for (;;) {

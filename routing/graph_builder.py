@@ -278,13 +278,37 @@ def load_graph(path: Path = GRAPH_CACHE, rebuild: bool = False) -> RoutingGraph:
     return rg
 
 
+_FALLBACK_PROJECTION_WARNED = False
+
+
 def _latlon_to_utm43n(lat: float, lon: float) -> tuple[float, float]:
-    """WGS84 (lat, lon) to UTM Zone 43N (EPSG:32643) in metres."""
+    """
+    WGS84 (lat, lon) to UTM Zone 43N (EPSG:32643) in metres.
+
+    Prefers geopandas/PROJ. Falls back to a closed-form Transverse Mercator
+    implementation when geopandas is unavailable — this runs on the hot path
+    (`snap_to_node` is called for every route request), so the fallback is
+    announced loudly rather than activating silently.
+
+    The fallback is validated against pyproj to < 1 mm across the Mumbai
+    bbox; see tests/test_projection.py. Do not edit the constants below
+    without re-running that test.
+    """
+    global _FALLBACK_PROJECTION_WARNED
     if gpd is not None:
         pt = gpd.GeoDataFrame(
             geometry=gpd.points_from_xy([lon], [lat]), crs="EPSG:4326"
         ).to_crs(METRIC_CRS)
         return float(pt.geometry.iloc[0].x), float(pt.geometry.iloc[0].y)
+
+    if not _FALLBACK_PROJECTION_WARNED:
+        _FALLBACK_PROJECTION_WARNED = True
+        print(
+            "  WARNING: geopandas unavailable — using built-in Transverse "
+            "Mercator fallback for coordinate projection. Validated to <1 mm "
+            "over the Mumbai bbox, but install geopandas in production.",
+            flush=True,
+        )
     # Closed-form Transverse Mercator for UTM Zone 43N
     a = 6378137.0
     f = 1 / 298.257223563
