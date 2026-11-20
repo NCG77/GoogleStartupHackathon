@@ -1,0 +1,1843 @@
+{
+  "segments_total": 57077,
+  "score_v1": {
+    "mean": 42.07,
+    "median": 40.69,
+    "stdev": 12.54,
+    "histogram_10pt": {
+      "0-10": 0,
+      "10-20": 1050,
+      "20-30": 7858,
+      "30-40": 18283,
+      "40-50": 16042,
+      "50-60": 8554,
+      "60-70": 3549,
+      "70-80": 1600,
+      "80-90": 141,
+      "90-100": 0
+    }
+  },
+  "score_v2_core": {
+    "mean": 33.21,
+    "median": 30.17,
+    "stdev": 14.56,
+    "histogram_10pt": {
+      "0-10": 473,
+      "10-20": 10371,
+      "20-30": 17429,
+      "30-40": 12405,
+      "40-50": 8053,
+      "50-60": 4848,
+      "60-70": 2611,
+      "70-80": 834,
+      "80-90": 53,
+      "90-100": 0
+    }
+  },
+  "spearman_rank_correlation": 0.8591,
+  "spearman_p_value": 0.0,
+  "over_scored_count_v1_ge_50_v2_lt_40": 1986,
+  "over_scored_percentage": 3.48,
+  "top_200_largest_deltas": [
+    {
+      "road_id": "215438680",
+      "lighting_score": 0.95,
+      "police_dist": 5983.4,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "215438727",
+      "lighting_score": 0.95,
+      "police_dist": 5993.4,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "991858412",
+      "lighting_score": 0.95,
+      "police_dist": 5314.2,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "798011321",
+      "lighting_score": 0.95,
+      "police_dist": 5298.3,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "215438739",
+      "lighting_score": 0.95,
+      "police_dist": 5441.5,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "991858413",
+      "lighting_score": 0.95,
+      "police_dist": 5759.6,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "798011328",
+      "lighting_score": 0.95,
+      "police_dist": 6208.8,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "798011327",
+      "lighting_score": 0.95,
+      "police_dist": 6242.7,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "798011326",
+      "lighting_score": 0.95,
+      "police_dist": 6162.6,
+      "crime_score": 34.3,
+      "score_v1": 59.96,
+      "score_v2_core": 30.35,
+      "delta": -29.61
+    },
+    {
+      "road_id": "211682968",
+      "lighting_score": 1.0,
+      "police_dist": 3577.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "22850295",
+      "lighting_score": 1.0,
+      "police_dist": 3200.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "211682998",
+      "lighting_score": 1.0,
+      "police_dist": 3264.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "408596492",
+      "lighting_score": 1.0,
+      "police_dist": 5152.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1164482242",
+      "lighting_score": 1.0,
+      "police_dist": 5158.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "790337877",
+      "lighting_score": 1.0,
+      "police_dist": 4192.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "949155093",
+      "lighting_score": 1.0,
+      "police_dist": 4171.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1534196018",
+      "lighting_score": 1.0,
+      "police_dist": 3194.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "408596536",
+      "lighting_score": 1.0,
+      "police_dist": 4859.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530344477",
+      "lighting_score": 1.0,
+      "police_dist": 3168.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1458052751",
+      "lighting_score": 1.0,
+      "police_dist": 3205.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530344478",
+      "lighting_score": 1.0,
+      "police_dist": 3191.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "662360186",
+      "lighting_score": 1.0,
+      "police_dist": 3256.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530349419",
+      "lighting_score": 1.0,
+      "police_dist": 3214.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530344479",
+      "lighting_score": 1.0,
+      "police_dist": 3196.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530349420",
+      "lighting_score": 1.0,
+      "police_dist": 3202.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530344480",
+      "lighting_score": 1.0,
+      "police_dist": 3253.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "408596502",
+      "lighting_score": 1.0,
+      "police_dist": 5088.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "790337876",
+      "lighting_score": 1.0,
+      "police_dist": 4198.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1141885977",
+      "lighting_score": 1.0,
+      "police_dist": 4321.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1419072191",
+      "lighting_score": 1.0,
+      "police_dist": 3294.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530349421",
+      "lighting_score": 1.0,
+      "police_dist": 3225.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530507612",
+      "lighting_score": 1.0,
+      "police_dist": 3266.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530344481",
+      "lighting_score": 1.0,
+      "police_dist": 3218.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "22850075",
+      "lighting_score": 1.0,
+      "police_dist": 3200.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "949155090",
+      "lighting_score": 1.0,
+      "police_dist": 4510.7,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "949155091",
+      "lighting_score": 1.0,
+      "police_dist": 4524.7,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1534196014",
+      "lighting_score": 1.0,
+      "police_dist": 3025.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1534196015",
+      "lighting_score": 1.0,
+      "police_dist": 3013.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1534196016",
+      "lighting_score": 1.0,
+      "police_dist": 3084.4,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1534196017",
+      "lighting_score": 1.0,
+      "police_dist": 3139.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "949155045",
+      "lighting_score": 1.0,
+      "police_dist": 4732.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "949155046",
+      "lighting_score": 1.0,
+      "police_dist": 4664.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530342297",
+      "lighting_score": 1.0,
+      "police_dist": 3247.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530342292",
+      "lighting_score": 1.0,
+      "police_dist": 3227.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "22850103",
+      "lighting_score": 1.0,
+      "police_dist": 3694.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1192314778",
+      "lighting_score": 1.0,
+      "police_dist": 3372.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1289073496",
+      "lighting_score": 1.0,
+      "police_dist": 3298.7,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "38913351",
+      "lighting_score": 1.0,
+      "police_dist": 3210.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "949155089",
+      "lighting_score": 1.0,
+      "police_dist": 3889.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "949155088",
+      "lighting_score": 1.0,
+      "police_dist": 4033.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "408596495",
+      "lighting_score": 1.0,
+      "police_dist": 5158.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1336429300",
+      "lighting_score": 1.0,
+      "police_dist": 4483.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1122603564",
+      "lighting_score": 1.0,
+      "police_dist": 5247.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1196823157",
+      "lighting_score": 1.0,
+      "police_dist": 4772.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1196823156",
+      "lighting_score": 1.0,
+      "police_dist": 4552.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1324656194",
+      "lighting_score": 1.0,
+      "police_dist": 4520.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1324656195",
+      "lighting_score": 1.0,
+      "police_dist": 4519.7,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "527832357",
+      "lighting_score": 1.0,
+      "police_dist": 4539.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1336430845",
+      "lighting_score": 1.0,
+      "police_dist": 4496.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "635511081",
+      "lighting_score": 1.0,
+      "police_dist": 4517.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1236044656",
+      "lighting_score": 1.0,
+      "police_dist": 4757.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1122124232",
+      "lighting_score": 1.0,
+      "police_dist": 4252.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "686156267",
+      "lighting_score": 1.0,
+      "police_dist": 4210.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1122124231",
+      "lighting_score": 1.0,
+      "police_dist": 4229.4,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1336429302",
+      "lighting_score": 1.0,
+      "police_dist": 4212.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1336429301",
+      "lighting_score": 1.0,
+      "police_dist": 4220.4,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "436222499",
+      "lighting_score": 1.0,
+      "police_dist": 4921.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1422008465",
+      "lighting_score": 1.0,
+      "police_dist": 5047.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "635511084",
+      "lighting_score": 1.0,
+      "police_dist": 4404.7,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530507613",
+      "lighting_score": 1.0,
+      "police_dist": 3253.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1526065883",
+      "lighting_score": 1.0,
+      "police_dist": 3126.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1526005586",
+      "lighting_score": 1.0,
+      "police_dist": 3329.4,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1525992021",
+      "lighting_score": 1.0,
+      "police_dist": 3287.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1525992019",
+      "lighting_score": 1.0,
+      "police_dist": 3308.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1525992020",
+      "lighting_score": 1.0,
+      "police_dist": 3289.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1525992018",
+      "lighting_score": 1.0,
+      "police_dist": 3281.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1525992022",
+      "lighting_score": 1.0,
+      "police_dist": 3299.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1124073585",
+      "lighting_score": 1.0,
+      "police_dist": 4850.4,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1236044651",
+      "lighting_score": 1.0,
+      "police_dist": 5041.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1122603567",
+      "lighting_score": 1.0,
+      "police_dist": 4683.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1336429299",
+      "lighting_score": 1.0,
+      "police_dist": 4518.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1122603568",
+      "lighting_score": 1.0,
+      "police_dist": 4692.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1530268601",
+      "lighting_score": 1.0,
+      "police_dist": 4788.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1122256444",
+      "lighting_score": 1.0,
+      "police_dist": 5180.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "315613913",
+      "lighting_score": 1.0,
+      "police_dist": 4907.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1122603566",
+      "lighting_score": 1.0,
+      "police_dist": 4644.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1380281593",
+      "lighting_score": 1.0,
+      "police_dist": 4918.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "792389735",
+      "lighting_score": 1.0,
+      "police_dist": 4204.7,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "792389733",
+      "lighting_score": 1.0,
+      "police_dist": 4202.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1186160057",
+      "lighting_score": 1.0,
+      "police_dist": 5165.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1196823155",
+      "lighting_score": 1.0,
+      "police_dist": 4633.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "315613895",
+      "lighting_score": 1.0,
+      "police_dist": 4790.5,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "315613896",
+      "lighting_score": 1.0,
+      "police_dist": 4399.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "408596528",
+      "lighting_score": 1.0,
+      "police_dist": 4754.0,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1196823154",
+      "lighting_score": 1.0,
+      "police_dist": 4750.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "1040728030",
+      "lighting_score": 1.0,
+      "police_dist": 4792.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "790337875",
+      "lighting_score": 1.0,
+      "police_dist": 4283.9,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.48,
+      "delta": -29.38
+    },
+    {
+      "road_id": "22850258",
+      "lighting_score": 1.0,
+      "police_dist": 2974.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.7,
+      "delta": -29.16
+    },
+    {
+      "road_id": "1418655290",
+      "lighting_score": 1.0,
+      "police_dist": 2954.6,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 29.91,
+      "delta": -28.95
+    },
+    {
+      "road_id": "1534196013",
+      "lighting_score": 1.0,
+      "police_dist": 2933.2,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 30.13,
+      "delta": -28.73
+    },
+    {
+      "road_id": "1534196012",
+      "lighting_score": 1.0,
+      "police_dist": 2928.1,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 30.19,
+      "delta": -28.67
+    },
+    {
+      "road_id": "1418655289",
+      "lighting_score": 1.0,
+      "police_dist": 2925.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 30.22,
+      "delta": -28.64
+    },
+    {
+      "road_id": "1526330993",
+      "lighting_score": 1.0,
+      "police_dist": 2920.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 30.27,
+      "delta": -28.59
+    },
+    {
+      "road_id": "22850031",
+      "lighting_score": 1.0,
+      "police_dist": 2919.4,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 30.28,
+      "delta": -28.58
+    },
+    {
+      "road_id": "1042713540",
+      "lighting_score": 1.0,
+      "police_dist": 191.4,
+      "crime_score": 91.7,
+      "score_v1": 72.49,
+      "score_v2_core": 44.32,
+      "delta": -28.17
+    },
+    {
+      "road_id": "798011323",
+      "lighting_score": 0.95,
+      "police_dist": 5551.2,
+      "crime_score": 43.8,
+      "score_v1": 57.11,
+      "score_v2_core": 28.96,
+      "delta": -28.15
+    },
+    {
+      "road_id": "798011324",
+      "lighting_score": 0.95,
+      "police_dist": 5535.6,
+      "crime_score": 43.8,
+      "score_v1": 57.11,
+      "score_v2_core": 28.96,
+      "delta": -28.15
+    },
+    {
+      "road_id": "424011671",
+      "lighting_score": 0.95,
+      "police_dist": 5506.7,
+      "crime_score": 43.8,
+      "score_v1": 57.11,
+      "score_v2_core": 28.96,
+      "delta": -28.15
+    },
+    {
+      "road_id": "782073363",
+      "lighting_score": 0.95,
+      "police_dist": 5531.9,
+      "crime_score": 43.8,
+      "score_v1": 57.11,
+      "score_v2_core": 28.96,
+      "delta": -28.15
+    },
+    {
+      "road_id": "215438785",
+      "lighting_score": 0.95,
+      "police_dist": 5634.1,
+      "crime_score": 43.8,
+      "score_v1": 57.11,
+      "score_v2_core": 28.96,
+      "delta": -28.15
+    },
+    {
+      "road_id": "437945973",
+      "lighting_score": 0.95,
+      "police_dist": 5194.7,
+      "crime_score": 43.8,
+      "score_v1": 57.11,
+      "score_v2_core": 28.96,
+      "delta": -28.15
+    },
+    {
+      "road_id": "798011322",
+      "lighting_score": 0.95,
+      "police_dist": 5106.7,
+      "crime_score": 43.8,
+      "score_v1": 57.11,
+      "score_v2_core": 28.96,
+      "delta": -28.15
+    },
+    {
+      "road_id": "697740275",
+      "lighting_score": 1.0,
+      "police_dist": 187.7,
+      "crime_score": 91.7,
+      "score_v1": 72.49,
+      "score_v2_core": 44.38,
+      "delta": -28.11
+    },
+    {
+      "road_id": "215438599",
+      "lighting_score": 0.882,
+      "police_dist": 6288.5,
+      "crime_score": 34.3,
+      "score_v1": 57.58,
+      "score_v2_core": 29.57,
+      "delta": -28.01
+    },
+    {
+      "road_id": "123266922",
+      "lighting_score": 1.0,
+      "police_dist": 4043.1,
+      "crime_score": 91.7,
+      "score_v1": 44.49,
+      "score_v2_core": 16.61,
+      "delta": -27.88
+    },
+    {
+      "road_id": "1539721135",
+      "lighting_score": 0.841,
+      "police_dist": 2922.2,
+      "crime_score": 25.0,
+      "score_v1": 58.93,
+      "score_v2_core": 31.05,
+      "delta": -27.88
+    },
+    {
+      "road_id": "1554178227",
+      "lighting_score": 1.0,
+      "police_dist": 4349.2,
+      "crime_score": 91.7,
+      "score_v1": 44.49,
+      "score_v2_core": 16.61,
+      "delta": -27.88
+    },
+    {
+      "road_id": "791231640",
+      "lighting_score": 1.0,
+      "police_dist": 4072.8,
+      "crime_score": 91.7,
+      "score_v1": 44.49,
+      "score_v2_core": 16.61,
+      "delta": -27.88
+    },
+    {
+      "road_id": "697740274",
+      "lighting_score": 1.0,
+      "police_dist": 171.3,
+      "crime_score": 91.7,
+      "score_v1": 72.49,
+      "score_v2_core": 44.64,
+      "delta": -27.85
+    },
+    {
+      "road_id": "701263862",
+      "lighting_score": 1.0,
+      "police_dist": 164.3,
+      "crime_score": 91.7,
+      "score_v1": 72.49,
+      "score_v2_core": 44.75,
+      "delta": -27.74
+    },
+    {
+      "road_id": "1339991303",
+      "lighting_score": 0.928,
+      "police_dist": 5054.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "376350004",
+      "lighting_score": 0.928,
+      "police_dist": 5442.9,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1186163272",
+      "lighting_score": 0.928,
+      "police_dist": 4899.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1186162295",
+      "lighting_score": 0.928,
+      "police_dist": 5097.8,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1115162406",
+      "lighting_score": 0.928,
+      "police_dist": 5377.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1152599023",
+      "lighting_score": 0.928,
+      "police_dist": 4948.9,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1115162407",
+      "lighting_score": 0.928,
+      "police_dist": 5429.8,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075974",
+      "lighting_score": 0.928,
+      "police_dist": 5466.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1188628244",
+      "lighting_score": 0.928,
+      "police_dist": 5564.8,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1219446229",
+      "lighting_score": 0.928,
+      "police_dist": 5088.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1219446227",
+      "lighting_score": 0.928,
+      "police_dist": 5100.6,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1339991299",
+      "lighting_score": 0.928,
+      "police_dist": 5087.9,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1152599020",
+      "lighting_score": 0.928,
+      "police_dist": 5152.3,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1330161092",
+      "lighting_score": 0.928,
+      "police_dist": 5132.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "376350092",
+      "lighting_score": 0.928,
+      "police_dist": 5281.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075855",
+      "lighting_score": 0.928,
+      "police_dist": 5241.9,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1343418462",
+      "lighting_score": 0.928,
+      "police_dist": 4814.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "370542507",
+      "lighting_score": 0.928,
+      "police_dist": 4818.6,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1522144118",
+      "lighting_score": 0.928,
+      "police_dist": 4840.1,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075915",
+      "lighting_score": 0.928,
+      "police_dist": 4927.1,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075967",
+      "lighting_score": 0.928,
+      "police_dist": 4960.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1175295953",
+      "lighting_score": 0.928,
+      "police_dist": 4745.9,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1219444882",
+      "lighting_score": 0.928,
+      "police_dist": 4903.8,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "370541940",
+      "lighting_score": 0.928,
+      "police_dist": 5144.1,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1175284861",
+      "lighting_score": 0.928,
+      "police_dist": 5610.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1339991298",
+      "lighting_score": 0.928,
+      "police_dist": 5262.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1207698625",
+      "lighting_score": 0.928,
+      "police_dist": 4962.1,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075848",
+      "lighting_score": 0.928,
+      "police_dist": 5207.6,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "666061004",
+      "lighting_score": 0.928,
+      "police_dist": 5116.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "666061006",
+      "lighting_score": 0.928,
+      "police_dist": 5055.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1457396591",
+      "lighting_score": 0.928,
+      "police_dist": 5296.5,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1186163274",
+      "lighting_score": 0.928,
+      "police_dist": 5150.3,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1457396592",
+      "lighting_score": 0.928,
+      "police_dist": 5307.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1152599024",
+      "lighting_score": 0.928,
+      "police_dist": 4967.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1186163273",
+      "lighting_score": 0.928,
+      "police_dist": 5280.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "703028493",
+      "lighting_score": 0.928,
+      "police_dist": 5273.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1303398591",
+      "lighting_score": 0.928,
+      "police_dist": 4990.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075837",
+      "lighting_score": 0.928,
+      "police_dist": 5198.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1533921639",
+      "lighting_score": 0.928,
+      "police_dist": 4977.5,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075815",
+      "lighting_score": 0.928,
+      "police_dist": 4983.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "666061009",
+      "lighting_score": 0.928,
+      "police_dist": 5015.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1207698624",
+      "lighting_score": 0.928,
+      "police_dist": 4969.6,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "666061007",
+      "lighting_score": 0.928,
+      "police_dist": 5047.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "666061008",
+      "lighting_score": 0.928,
+      "police_dist": 5033.3,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "257804752",
+      "lighting_score": 0.928,
+      "police_dist": 4800.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1422015636",
+      "lighting_score": 0.928,
+      "police_dist": 4957.0,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1152599022",
+      "lighting_score": 0.928,
+      "police_dist": 4826.5,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "794355653",
+      "lighting_score": 0.928,
+      "police_dist": 4913.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1330161090",
+      "lighting_score": 0.928,
+      "police_dist": 5111.9,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1341273853",
+      "lighting_score": 0.928,
+      "police_dist": 4906.6,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "315613900",
+      "lighting_score": 0.928,
+      "police_dist": 5265.0,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "790337872",
+      "lighting_score": 0.928,
+      "police_dist": 5288.3,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1533921638",
+      "lighting_score": 0.928,
+      "police_dist": 5007.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1330161091",
+      "lighting_score": 0.928,
+      "police_dist": 5157.5,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1103453738",
+      "lighting_score": 0.928,
+      "police_dist": 5156.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1330161093",
+      "lighting_score": 0.928,
+      "police_dist": 5065.0,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "449237003",
+      "lighting_score": 0.928,
+      "police_dist": 5161.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "790337873",
+      "lighting_score": 0.928,
+      "police_dist": 5345.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1339991304",
+      "lighting_score": 0.928,
+      "police_dist": 5107.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "697688242",
+      "lighting_score": 0.928,
+      "police_dist": 4874.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "366912370",
+      "lighting_score": 0.928,
+      "police_dist": 4742.8,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075964",
+      "lighting_score": 0.928,
+      "police_dist": 4709.3,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1333683707",
+      "lighting_score": 0.928,
+      "police_dist": 4558.2,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "703027579",
+      "lighting_score": 0.928,
+      "police_dist": 4656.6,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "215075886",
+      "lighting_score": 0.928,
+      "police_dist": 4509.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1339991301",
+      "lighting_score": 0.928,
+      "police_dist": 5078.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "376350072",
+      "lighting_score": 0.928,
+      "police_dist": 5694.4,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1339991300",
+      "lighting_score": 0.928,
+      "police_dist": 5081.8,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1339991305",
+      "lighting_score": 0.928,
+      "police_dist": 5144.0,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1382270500",
+      "lighting_score": 0.928,
+      "police_dist": 5158.3,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "686149931",
+      "lighting_score": 0.928,
+      "police_dist": 5637.7,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "1138649172",
+      "lighting_score": 0.928,
+      "police_dist": 4962.0,
+      "crime_score": 43.8,
+      "score_v1": 56.34,
+      "score_v2_core": 28.72,
+      "delta": -27.62
+    },
+    {
+      "road_id": "697915054",
+      "lighting_score": 1.0,
+      "police_dist": 151.3,
+      "crime_score": 91.7,
+      "score_v1": 72.49,
+      "score_v2_core": 44.95,
+      "delta": -27.54
+    },
+    {
+      "road_id": "1539721136",
+      "lighting_score": 0.841,
+      "police_dist": 2884.6,
+      "crime_score": 25.0,
+      "score_v1": 58.93,
+      "score_v2_core": 31.46,
+      "delta": -27.47
+    },
+    {
+      "road_id": "1534196011",
+      "lighting_score": 1.0,
+      "police_dist": 2815.3,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 31.4,
+      "delta": -27.46
+    },
+    {
+      "road_id": "1534196010",
+      "lighting_score": 1.0,
+      "police_dist": 2802.8,
+      "crime_score": 43.8,
+      "score_v1": 58.86,
+      "score_v2_core": 31.54,
+      "delta": -27.32
+    },
+    {
+      "road_id": "697915055",
+      "lighting_score": 1.0,
+      "police_dist": 133.3,
+      "crime_score": 91.7,
+      "score_v1": 72.49,
+      "score_v2_core": 45.23,
+      "delta": -27.26
+    },
+    {
+      "road_id": "1534508707",
+      "lighting_score": 1.0,
+      "police_dist": 122.2,
+      "crime_score": 91.7,
+      "score_v1": 72.49,
+      "score_v2_core": 45.41,
+      "delta": -27.08
+    },
+    {
+      "road_id": "1192314779",
+      "lighting_score": 0.9,
+      "police_dist": 3509.2,
+      "crime_score": 43.8,
+      "score_v1": 55.36,
+      "score_v2_core": 28.41,
+      "delta": -26.95
+    },
+    {
+      "road_id": "1530349422",
+      "lighting_score": 0.9,
+      "police_dist": 3565.2,
+      "crime_score": 43.8,
+      "score_v1": 55.36,
+      "score_v2_core": 28.41,
+      "delta": -26.95
+    }
+  ]
+}

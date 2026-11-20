@@ -1,0 +1,77 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+**/build/
+**/.cxx/
+*.class
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+.env
+saferoute-758ad-firebase-adminsdk-fbsvc-a173ca1fb1.json
+*-firebase-adminsdk-*.json
+
+# Python caches
+**/__pycache__/
+*.py[cod]
+
+# ---------------------------------------------------------------------------
+# Geospatial / ML source data (too large for GitHub; rebuild locally if needed)
+# Runtime routing on Render only needs the processed cache + small JSON/CSV.
+# ---------------------------------------------------------------------------
+data/**
+!data/README
+!data/processed/
+data/processed/**
+!data/processed/mumbai_routing_graph.pkl
+!data/processed/temporary_hazards.json
+!data/processed/community_bias.json
+!data/processed/community_geohash_agg.json
+!data/processed/community_reports.csv
+!data/processed/road_safety_scores.csv
+!data/processed/lighting_meta.json
+!data/processed/scoring_comparison_summary.json
+!data/processed/scoring_comparison.csv
+
+# Firebase CLI cache
+.firebase/
+
+# Cloud Functions build output (rebuilt by firebase.json predeploy)
+functions/lib/
+
+# IDE
+.idea/

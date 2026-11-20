@@ -1,0 +1,12 @@
+{
+  "status": "retired",
+  "retired_date": "2026-11-20",
+  "reason": "Previous ML model exhibited circular target leakage (R2=0.9987 over a synthetic closed-form label). Replaced by Safety Score v2 (axiomatic weighted geometric mean with exponential decay).",
+  "current_score_engine": "safety_score_v2",
+  "axioms": [
+    "Non-compensability (geometric mean prevents a single safe factor from masking catastrophic danger)",
+    "Continuity (exponential decay eliminates artificial distance step cliffs)",
+    "Unbounded decay (proximity smoothly approaches zero over distance)"
+  ],
+  "segments_evaluated": 57077
+}
