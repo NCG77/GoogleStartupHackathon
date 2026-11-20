@@ -75,6 +75,8 @@ export function mapNavigateRoutesToComparison(
       color: route?.color || ROUTE_KIND_COLORS[kind] || heatColor(score),
       confidence: confidence == null ? null : Number(confidence),
       reasons,
+      summary: (route?.summary || route?.explanation?.summary || null) as string | null,
+      explanation: route?.explanation ?? null,
       lowConfidenceAdvisory: advisory,
       etaDeltaVsFastestMin: delta,
     };

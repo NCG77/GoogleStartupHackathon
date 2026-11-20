@@ -48,6 +48,10 @@ export type ComparisonRoute = {
 
   reasons?: { icon: string; text: string }[];
 
+  summary?: string | null;
+
+  explanation?: any;
+
   lowConfidenceAdvisory?: string | null;
 
   etaDeltaVsFastestMin?: number | null;

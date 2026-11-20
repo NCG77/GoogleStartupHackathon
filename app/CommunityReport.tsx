@@ -20,6 +20,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { submitCommunityReport } from "@/services/communityIntelligence";
 import { analytics } from "@/services/analytics";
+import {
+  verifyHazardPhotoWithGemini,
+  SAMPLE_HAZARD_PRESETS,
+  type HazardVerificationResult,
+} from "@/services/geminiHazardVerification";
 
 type Step = 1 | 2 | 3;
 
@@ -74,6 +79,10 @@ export default function CommunityReportScreen() {
   const [description, setDescription] = useState("");
   const [anonymous, setAnonymous] = useState(true);
   const [photoAttached, setPhotoAttached] = useState(false);
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [verifyingPhoto, setVerifyingPhoto] = useState(false);
+  const [photoVerification, setPhotoVerification] = useState<HazardVerificationResult | null>(null);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [voiceAttached, setVoiceAttached] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [place, setPlace] = useState<ReportPlace | null>(null);
@@ -81,6 +90,45 @@ export default function CommunityReportScreen() {
 
   const categoryLabel =
     CATEGORIES.find((item) => item.id === category)?.label ?? "Report";
+
+  const handleSelectPresetPhoto = useCallback(
+    async (presetId: string) => {
+      const preset = SAMPLE_HAZARD_PRESETS.find((p) => p.id === presetId);
+      if (!preset) return;
+      setSelectedPresetId(preset.id);
+      setPhotoAttached(true);
+      setPhotoBase64(preset.base64);
+      setVerifyingPhoto(true);
+      try {
+        const res = await verifyHazardPhotoWithGemini({
+          base64Image: preset.base64,
+          userCategory: categoryLabel,
+          userDescription: description || preset.description,
+        });
+        setPhotoVerification(res);
+        if (res.isAuthenticHazard && res.severity) {
+          setSeverity(res.severity);
+        }
+      } catch {
+        setPhotoVerification(null);
+      } finally {
+        setVerifyingPhoto(false);
+      }
+    },
+    [categoryLabel, description],
+  );
+
+  const togglePhoto = useCallback(async () => {
+    if (photoAttached) {
+      setPhotoAttached(false);
+      setPhotoBase64(null);
+      setPhotoVerification(null);
+      setSelectedPresetId(null);
+      return;
+    }
+    // Default attach with Broken Streetlight preset for instant verification
+    await handleSelectPresetPhoto("sample_broken_light");
+  }, [photoAttached, handleSelectPresetPhoto]);
 
   const applyCurrentLocation = useCallback(async () => {
     setPlaceLoading(true);
@@ -131,6 +179,14 @@ export default function CommunityReportScreen() {
 
   const submit = async () => {
     if (!place || !category) return;
+    if (photoVerification && !photoVerification.isAuthenticHazard) {
+      Alert.alert(
+        "Photo Verification Flagged",
+        photoVerification.suggestedWarning ||
+          "Gemini Vision classified this photo as spam or irrelevant. Please remove the photo or attach a genuine street hazard image before submitting.",
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await submitCommunityReport({
@@ -448,20 +504,151 @@ export default function CommunityReportScreen() {
               style={[
                 styles.mediaSlot,
                 { borderColor: c.border, backgroundColor: c.surfaceVariant },
+                photoAttached && {
+                  borderColor: photoVerification?.isAuthenticHazard ? c.primary : c.danger,
+                  borderStyle: "solid",
+                },
               ]}
-              onPress={() => setPhotoAttached((v) => !v)}
+              onPress={togglePhoto}
               accessibilityRole="button"
               accessibilityLabel="Attach photo"
             >
               <MaterialIcons
-                name={photoAttached ? "check-circle" : "photo-camera"}
+                name={
+                  photoAttached
+                    ? photoVerification?.isAuthenticHazard
+                      ? "check-circle"
+                      : "warning"
+                    : "photo-camera"
+                }
                 size={22}
-                color={photoAttached ? c.success : c.textSecondary}
+                color={
+                  photoAttached
+                    ? photoVerification?.isAuthenticHazard
+                      ? c.success
+                      : c.danger
+                    : c.textSecondary
+                }
               />
-              <Text style={[styles.mediaText, { color: c.textSecondary }]}>
+              <Text style={[styles.mediaText, { color: c.textSecondary, flex: 1 }]}>
                 {photoAttached ? "Photo attached" : "Photo (optional)"}
               </Text>
+              {verifyingPhoto ? (
+                <ActivityIndicator size="small" color={c.primary} />
+              ) : photoAttached ? (
+                <Text style={{ fontSize: 12, color: c.textTertiary }}>Tap to remove</Text>
+              ) : null}
             </Pressable>
+
+            {/* Gemini Vision Verification Status Card */}
+            {verifyingPhoto ? (
+              <View
+                style={[
+                  styles.aiVerifyCard,
+                  { backgroundColor: c.primaryContainer, borderColor: c.border },
+                ]}
+              >
+                <ActivityIndicator size="small" color={c.primary} />
+                <Text style={[styles.aiVerifyText, { color: c.primary }]}>
+                  Gemini Vision analyzing photo for hazard authenticity & classification…
+                </Text>
+              </View>
+            ) : photoVerification ? (
+              photoVerification.isAuthenticHazard ? (
+                <View
+                  style={[
+                    styles.aiVerifyCard,
+                    {
+                      backgroundColor: c.successContainer || c.surfaceVariant,
+                      borderColor: c.success,
+                    },
+                  ]}
+                >
+                  <View style={styles.aiBadgeRow}>
+                    <View style={[styles.aiPill, { backgroundColor: c.success }]}>
+                      <MaterialIcons name="auto-awesome" size={12} color="#fff" />
+                      <Text style={styles.aiPillText}>Gemini Vision Verified</Text>
+                    </View>
+                    <Text style={[styles.aiConfidenceText, { color: c.textSecondary }]}>
+                      {Math.round(photoVerification.confidence * 100)}% match
+                    </Text>
+                  </View>
+                  <Text style={[styles.aiHazardTitle, { color: c.textPrimary }]}>
+                    {photoVerification.displayLabel} · Severity {photoVerification.severity}/5
+                  </Text>
+                  <Text style={[styles.aiSummaryText, { color: c.textSecondary }]}>
+                    {photoVerification.summary}
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.aiVerifyCard,
+                    {
+                      backgroundColor: c.dangerContainer || "#fef2f2",
+                      borderColor: c.danger,
+                    },
+                  ]}
+                >
+                  <View style={styles.aiBadgeRow}>
+                    <View style={[styles.aiPill, { backgroundColor: c.danger }]}>
+                      <MaterialIcons name="report-problem" size={12} color="#fff" />
+                      <Text style={styles.aiPillText}>Flagged: Spam / Non-Hazard</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.aiHazardTitle, { color: c.danger }]}>
+                    Photo Verification Rejected
+                  </Text>
+                  <Text style={[styles.aiSummaryText, { color: c.textSecondary }]}>
+                    {photoVerification.suggestedWarning || photoVerification.summary}
+                  </Text>
+                </View>
+              )
+            ) : null}
+
+            {/* Quick Presets for testing Gemini Vision */}
+            <View style={styles.presetSection}>
+              <Text style={[styles.presetHeader, { color: c.textTertiary }]}>
+                Test with Hazard Presets (Gemini Vision)
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.presetRow}
+              >
+                {SAMPLE_HAZARD_PRESETS.map((preset) => {
+                  const isSelected = selectedPresetId === preset.id;
+                  return (
+                    <Pressable
+                      key={preset.id}
+                      onPress={() => void handleSelectPresetPhoto(preset.id)}
+                      style={[
+                        styles.presetChip,
+                        { backgroundColor: c.surface, borderColor: c.border },
+                        isSelected && {
+                          borderColor: c.primary,
+                          backgroundColor: c.primaryContainer,
+                        },
+                      ]}
+                    >
+                      <MaterialIcons
+                        name={preset.icon as any}
+                        size={14}
+                        color={isSelected ? c.primary : c.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.presetChipText,
+                          { color: isSelected ? c.primary : c.textSecondary },
+                        ]}
+                      >
+                        {preset.title}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
 
             <Pressable
               style={[
@@ -764,5 +951,73 @@ const styles = StyleSheet.create({
   trustEarnValue: {
     fontFamily: typography.fontFamily.bold,
     fontSize: typography.size.display,
+  },
+  aiVerifyCard: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  aiBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  aiPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  aiPillText: {
+    fontFamily: typography.fontFamily.bold,
+    fontSize: 11,
+    color: "#fff",
+  },
+  aiConfidenceText: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 12,
+  },
+  aiHazardTitle: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: typography.size.body,
+  },
+  aiSummaryText: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.size.caption,
+    lineHeight: 18,
+  },
+  aiVerifyText: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 12,
+  },
+  presetSection: {
+    gap: spacing.xs,
+    marginTop: 2,
+  },
+  presetHeader: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  presetRow: {
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+  presetChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    borderWidth: 1,
+  },
+  presetChipText: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 12,
   },
 });

@@ -12,9 +12,12 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import React, { useEffect } from "react";
+import { useVoiceSafetyAssistant } from "@/hooks/useVoiceSafetyAssistant";
+import { VOICE_COMMAND_TEST_PRESETS } from "@/services/geminiVoiceSafetyAssistant";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -96,6 +99,7 @@ export type LiveNavigationHUDProps = {
   /** When true, shows pulse + light haptic cadence (safety caution) */
   vibrationActive?: boolean;
   onCallGuardian?: () => void;
+  onRerouteSafest?: () => void;
   onReport?: () => void;
   onSOS?: () => void;
   onEnd?: () => void;
@@ -169,6 +173,7 @@ export function LiveNavigationHUD({
   onDismissRouteAlert,
   vibrationActive = false,
   onCallGuardian,
+  onRerouteSafest,
   onReport,
   onSOS,
   onEnd,
@@ -177,6 +182,25 @@ export function LiveNavigationHUD({
 }: LiveNavigationHUDProps) {
   const { colors: c } = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  const voice = useVoiceSafetyAssistant({
+    context: {
+      currentStreetName: instruction || "Current Road",
+      nearestPoliceName: nearestPolice?.name,
+      policeDistanceM: nearestPolice?.distanceM,
+      etaMinutes: remainingMinutes,
+      lightingStatus: safetyScore >= 65 ? "well-lit" : "dim",
+    },
+    onEmergencyTriggered: () => {
+      onSOS?.();
+    },
+    onRerouteRequested: () => {
+      onRerouteSafest?.();
+    },
+    onFindPoliceRequested: () => {
+      onNavigateToPolice?.();
+    },
+  });
 
   if (!visible) return null;
 
@@ -286,12 +310,100 @@ export function LiveNavigationHUD({
             ) : null}
           </Animated.View>
         ) : null}
+
+        {/* Voice Distress Banner */}
+        {voice.isDistressTriggered ? (
+          <Animated.View
+            entering={FadeInDown.duration(200)}
+            style={[
+              styles.alertCard,
+              {
+                borderColor: navDark.danger,
+                backgroundColor: "rgba(242, 86, 75, 0.2)",
+              },
+            ]}
+          >
+            <MaterialIcons name="warning" size={24} color={navDark.danger} />
+            <View style={styles.alertCopy}>
+              <Text style={[styles.alertTitle, { color: navDark.danger }]}>
+                Distress Detected via Earphones
+              </Text>
+              <Text style={styles.alertBody}>
+                {voice.lastResult?.spokenResponse ||
+                  "SOS alert dispatched to guardians and local police."}
+              </Text>
+            </View>
+            <Pressable onPress={voice.dismissDistress} hitSlop={10}>
+              <MaterialIcons name="close" size={18} color={navDark.muted} />
+            </Pressable>
+          </Animated.View>
+        ) : null}
+
+        {/* Voice Assistant Active Indicator */}
+        {voice.isEnabled ? (
+          <View style={styles.voiceHUDCard}>
+            <View style={styles.voiceTopRow}>
+              <MaterialIcons
+                name="headset-mic"
+                size={16}
+                color={navDark.success}
+              />
+              <Text style={styles.voiceHUDTitle}>
+                {voice.isProcessing
+                  ? "Gemini processing voice command…"
+                  : "Earphone Safety Assistant Active"}
+              </Text>
+            </View>
+            {voice.lastResult && !voice.isDistressTriggered ? (
+              <View style={styles.voiceBubble}>
+                <MaterialIcons name="graphic-eq" size={14} color={navDark.info} />
+                <Text style={styles.voiceBubbleText} numberOfLines={2}>
+                  "{voice.lastResult.spokenResponse}"
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </Animated.View>
 
       <Animated.View
         entering={FadeInDown.delay(60).duration(motion.normal)}
         style={[styles.bottom, { paddingBottom: bottomPad }]}
       >
+        {/* Voice command test presets when hands-free is enabled */}
+        {voice.isEnabled ? (
+          <View style={styles.voicePresetsTray}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.voicePresetsContent}
+            >
+              {VOICE_COMMAND_TEST_PRESETS.map((cmd) => (
+                <Pressable
+                  key={cmd.id}
+                  onPress={() => void voice.executeVoiceCommand(cmd.transcript)}
+                  style={[
+                    styles.voicePresetPill,
+                    cmd.isEmergency && {
+                      borderColor: navDark.danger,
+                      backgroundColor: "rgba(242, 86, 75, 0.2)",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.voicePresetText,
+                      cmd.isEmergency && { color: navDark.danger },
+                    ]}
+                  >
+                    {cmd.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
         <Animated.View
           entering={FadeInDown.delay(100).duration(motion.slow)}
           style={styles.guardianCard}
@@ -340,6 +452,34 @@ export function LiveNavigationHUD({
           </Pressable>
 
           <Pressable
+            onPress={voice.toggleHandsFreeMode}
+            style={({ pressed }) => [
+              styles.actionBtn,
+              voice.isEnabled && {
+                backgroundColor: "rgba(76, 195, 138, 0.22)",
+                borderColor: navDark.success,
+              },
+              pressed && styles.actionPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Hands-free earphone safety assistant"
+          >
+            <MaterialIcons
+              name={voice.isEnabled ? "headset-mic" : "headset"}
+              size={22}
+              color={voice.isEnabled ? navDark.success : navDark.text}
+            />
+            <Text
+              style={[
+                styles.actionLabel,
+                voice.isEnabled && { color: navDark.success, fontWeight: "700" },
+              ]}
+            >
+              {voice.isEnabled ? "Voice" : "Voice"}
+            </Text>
+          </Pressable>
+
+          <Pressable
             onPress={onReport}
             style={({ pressed }) => [
               styles.actionBtn,
@@ -375,7 +515,7 @@ export function LiveNavigationHUD({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "space-between",
   },
   top: {
@@ -586,5 +726,59 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.bold,
     fontSize: typography.size.caption,
     letterSpacing: 0.5,
+  },
+  voiceHUDCard: {
+    backgroundColor: navDark.glass,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(76, 195, 138, 0.4)",
+  },
+  voiceTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  voiceHUDTitle: {
+    fontFamily: typography.fontFamily.semibold,
+    fontSize: 12,
+    color: navDark.success,
+  },
+  voiceBubble: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  voiceBubbleText: {
+    flex: 1,
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 12,
+    color: navDark.text,
+  },
+  voicePresetsTray: {
+    marginBottom: spacing.xs,
+  },
+  voicePresetsContent: {
+    flexDirection: "row",
+    gap: spacing.xs,
+    paddingHorizontal: 2,
+  },
+  voicePresetPill: {
+    backgroundColor: "rgba(28, 28, 32, 0.95)",
+    borderWidth: 1,
+    borderColor: navDark.border,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderRadius: radius.full,
+  },
+  voicePresetText: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: 11,
+    color: navDark.text,
   },
 });

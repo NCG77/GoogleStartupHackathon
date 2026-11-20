@@ -1,10 +1,14 @@
 # SafeRoute
 
-SafeRoute is a personal-safety navigation app for Indian cities. It recommends safety-weighted walking routes, lets trusted guardians follow a walk live, and gives one-tap SOS. Routes are scored from road lighting (NASA/NOAA VIIRS night-time satellite data), proximity to police, regional crime statistics, entrapment/prospect streetscape metrics, and live community hazard reports, with grounded Gemini safety explanations.
+SafeRoute is a personal-safety navigation app for Indian cities. It recommends safety-weighted walking routes, lets trusted guardians follow a walk live, and gives one-tap SOS. Routes are scored from road lighting (NASA/NOAA VIIRS night-time satellite data), proximity to police, regional crime statistics, entrapment/prospect streetscape metrics, and live community hazard reports, integrated with Google's **Gemini 3.8 Flash** multimodal safety intelligence suite.
 
 ## Features
 
 - **Safety-weighted routing**: an A* router over a Mumbai road graph returns multiple route options (safest, balanced, fastest) with a safety score, a plain-language "why this route" explanation, and a confidence value. Night-time travel weights lighting more heavily.
+- **Grounded Natural-Language Route Explanations ("Why This Route?")**: Powered by **Gemini 3.8 Flash**, translating complex spatial and illumination metrics (VIIRS night lighting, police station distance, entrapment scores, road prospect, and crime percentiles) into plain, reassuring pedestrian language with strict zero-hallucination grounding and deterministic offline fallbacks.
+- **Multimodal Incident & Hazard Verification**: Employs **Gemini 3.8 Flash Vision** to classify community hazard photos (broken streetlights, deserted alleys, waterlogging, blocked sidewalks), detect real physical hazards, filter out spam/selfies, and rate severity (1–5) prior to public map dispatch.
+- **Hands-Free / Voice-Activated Safety Assistant**: Dual-tier earphone assistant featuring a 0ms zero-latency regex scanner for urgent distress phrases in English, Hindi, and Marathi (`help me`, `being followed`, `call police`, `bachao`), coupled with **Gemini 3.8 Flash** for hands-free navigation commands (`reroute to safer street`, `find police`, `status check`).
+- **Dynamic Neighborhood Safety Briefings**: Contextual, time-aware pre-trip briefings powered by **Gemini 3.8 Flash** synthesized from current hour, neighborhood lighting density, crowd activity, and police proximity (e.g., *"You're traveling after 10 PM in Kurla. Linking Road remains well-lit and active until midnight, but pedestrian crossways near the station have reduced lighting"*).
 - **Live navigation**: turn-by-turn HUD, nearest police station, rerouting around newly reported hazards, and Android picture-in-picture navigation.
 - **Safe Walk**: share a walk with guardians, with periodic check-ins, a live viewer, and a post-walk review.
 - **Guardians**: invite trusted contacts through deep links hosted on Firebase Hosting; accept or revoke access; guardians get push alerts.
@@ -40,8 +44,40 @@ SafeRoute is a personal-safety navigation app for Indian cities. It recommends s
 | Native module | `modules/navigation-pip`, `plugins/withNavigationPip.js` | Kotlin, Expo config plugin |
 | Cloud backend | `functions/src/index.ts`, `firestore.rules`, `firestore.indexes.json`, `hosting/` | Firebase Functions v2 (Node 22), Firestore, FCM, Hosting |
 | Routing API | `routing/` | Python 3.12, FastAPI, NetworkX, GeoPandas |
-| Safety & Explanation | `ml/`, `routing/` | Safety Score v2 (weighted geometric mean), Gemini 1.5 Flash grounded explanations |
+| Safety & Explanation | `services/`, `ml/`, `routing/` | Safety Score v2 (weighted geometric mean), Gemini 3.8 Flash multimodal intelligence |
 | Data | `data/processed/` | Prebuilt Mumbai routing graph and per-road safety scores |
+
+### Gemini 3.8 Flash Safety Intelligence Suite
+
+SafeRoute integrates Google's **Gemini 3.8 Flash** model across client and server runtimes to provide real-time, grounded pedestrian safety intelligence with 100% deterministic offline fallback guarantees.
+
+1. **Grounded Natural-Language Route Explanations ("Why This Route?")**:
+   - Synthesizes complex road metrics (NASA/NOAA VIIRS night lighting radiance, police station proximity, road prospect/width, entrapment score, crime percentiles, and unlit segments avoided) into calm, reassuring single-sentence pedestrian guidance (e.g., *"This route adds 4 mins but avoids 3 unlit service lanes and keeps you within 300 m of a 24/7 police beat box"*).
+   - Enforces strict zero-hallucination grounding (never invents streets or landmarks; every statement maps to an input metric).
+   - Paired with deterministic template fallback engines: `services/geminiRouteExplanation.ts` (client) and `routing/gemini_explainer.py` (FastAPI backend).
+   - Wired into `components/maps/MapTripSheet.tsx` and `components/route/ComparisonRouteCard.tsx`.
+
+2. **Multimodal Incident & Hazard Verification**:
+   - Uses `gemini-3.8-flash` multimodal vision to inspect and classify community hazard photos (broken streetlights, deserted alleys, waterlogging, blocked sidewalks, harassment blindspots).
+   - Detects authentic physical street hazards, automatically rejects spam, selfies, and memes, and grades hazard severity on a 1–5 scale.
+   - Outputs triaged moderation actions: `auto_approved` ($\ge 0.85$ confidence), `flagged_for_human_review`, or `rejected_spam`.
+   - Includes test presets (`SAMPLE_HAZARD_PRESETS`) in `services/geminiHazardVerification.ts` and interactive UI in `app/CommunityReport.tsx`.
+
+3. **Hands-Free / Voice-Activated Safety Assistant**:
+   - Designed for night pedestrians walking with earphones without drawing attention to a phone screen.
+   - **Dual-tier architecture**:
+     - **Tier 1 (0ms Instant Distress Scanner)**: Local regex scanner detecting critical emergency distress terms across English, Hindi, and Marathi (`help me`, `being followed`, `call police`, `bachao`, `madad`, `police ko bulao`). Dispatches immediate SOS alerts to guardians and nearby police with zero network latency.
+     - **Tier 2 (Gemini 3.8 Flash Intent Engine)**: Natural-language command parser handling pedestrian navigation requests (`reroute to safer street`, `where is nearest police`, `status check`, `report hazard`).
+   - Produces short, calming, low-volume earphone-ready audio responses.
+   - Implemented via `services/geminiVoiceSafetyAssistant.ts`, `hooks/useVoiceSafetyAssistant.ts`, and integrated into `components/navigation/LiveNavigationHUD.tsx`.
+
+4. **Dynamic Neighborhood Safety Briefings**:
+   - Delivers time-aware, localized pre-trip intelligence before beginning a walk (e.g., *"You're traveling after 10 PM in Kurla. Linking Road remains well-lit and active until midnight, but pedestrian crossways near the station have reduced lighting"*).
+   - Dynamically aggregates neighborhood name, current hour, VIIRS night illumination, police proximity, crowd ratio, and active community hazards.
+   - Categorizes risk level (`low`, `moderate`, `caution`) with actionable highlights and an earphone audio briefing script.
+   - Implemented in `services/geminiNeighborhoodBriefing.ts`, `components/safety/NeighborhoodBriefingCard.tsx`, mounted on `app/(tabs)/Home.tsx` and `components/maps/MapTripSheet.tsx`.
+
+> Comprehensive schemas, prompt designs, error handling, and runnable examples are documented in [docs/GEMINI-SAFETY-FEATURES.md](docs/GEMINI-SAFETY-FEATURES.md).
 
 ### Routing API endpoints
 
@@ -87,6 +123,8 @@ Fill in `.env`. Every variable is documented in `.env.example`:
 | `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | App: native maps (also injected into the Android manifest by Gradle) |
 | `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY`, `EXPO_PUBLIC_GOOGLE_DIRECTIONS_API_KEY` | App: search and directions |
 | `EXPO_PUBLIC_ROUTING_API_URL` | App: routing API base URL (`http://10.0.2.2:8000` for the Android emulator) |
+| `EXPO_PUBLIC_GEMINI_API_KEY` | App: Gemini 3.8 Flash route explanations, hazard vision verification, voice assistant, and neighborhood briefings |
+| `GEMINI_API_KEY` | Routing API & backend server: Gemini 3.8 Flash route explanations (`routing/gemini_explainer.py`) |
 | `FIREBASE_SERVICE_ACCOUNT_JSON`, `COMMUNITY_SYNC_MINUTES`, `SAFEROUTE_ADMIN_TOKEN`, `SAFEROUTE_TZ` | Routing API server |
 | `EE_SERVICE_ACCOUNT_JSON`, `EE_PROJECT`, `SAFEROUTE_API_URL` | GitHub Actions lighting refresh (set as repository secrets) |
 
@@ -148,13 +186,13 @@ The `android/` project is committed. If you run `npx expo prebuild --clean`, re-
 app/            Screens (Expo Router); (tabs)/ holds Home, Navigate, Safe Walk, SOS, Alerts, Contacts, Settings
 components/     UI, including design-system/, maps/, navigation/, route/, guardian/, tour/
 core/           Client-side domain logic: safety score, route optimisation, Safe Walk, SOS, geohash, heatmap
-services/       Firebase, routing API, notifications, places and presence clients
-hooks/, tasks/  React hooks and background location tasks
+services/       Firebase, routing API, notifications, places, presence, and Gemini 3.8 Flash safety services
+hooks/, tasks/  React hooks (including useVoiceSafetyAssistant) and background location tasks
 functions/      Firebase Cloud Functions
-routing/        FastAPI routing service
+routing/        FastAPI routing service and gemini_explainer.py engine
 ml/             Risk model training, evaluation, community intelligence, lighting refresh
 data/processed/ Runtime data for the routing service
-docs/           SRS, design system, guardian/live-safety design notes
+docs/           SRS, Gemini safety suite (GEMINI-SAFETY-FEATURES.md), design system, guardian notes
 ```
 
 ## Data sources and attribution

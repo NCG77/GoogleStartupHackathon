@@ -954,6 +954,7 @@ At one million users the split that matters is: interactive work (score, SOS, Sa
 | OpenStreetMap via `road_segments` | Intersection graph for section 4 when a cell is loaded. Not a live Overpass dependency. |
 | Geohash in `core/geohash.ts` | Precision selection for scores and crowd cells. A separate GeoFirestore package is unnecessary because the queries are prefix equality on a string field. |
 | Turf.js | Not added. Distances use the haversine already in `core/routeOptimization.ts`. Adding Turf would duplicate that. |
+| Gemini 3.8 Flash | Grounded natural-language route explanations, multimodal incident/hazard verification, dual-tier earphone voice assistant, and dynamic neighborhood safety briefings. Documented in `docs/GEMINI-SAFETY-FEATURES.md`. |
 | XGBoost | Training-time model described in section 3. No runtime package is installed, because there is no model artifact to execute. |
 | `react-native-reanimated` 4.5.1 and `react-native-worklets` | Required by SDK 57. |
 | `react-native-maps` 1.27.2 | The maps version Expo SDK 57 expects. |

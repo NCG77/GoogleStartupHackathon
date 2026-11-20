@@ -6,6 +6,7 @@ import {
   type ComparisonRoute,
 } from "@/components/route/ComparisonRouteCard";
 import { WhyThisRoute } from "@/components/route/WhyThisRoute";
+import { NeighborhoodBriefingCard } from "@/components/safety/NeighborhoodBriefingCard";
 import {
   radius,
   spacing,
@@ -345,10 +346,21 @@ export function MapTripSheet({
             nestedScrollEnabled
             onContentSizeChange={(_, h) => measured(setMidH, midH)(h)}
           >
-            {whyReasons.length > 0 ? (
+            {whyReasons.length > 0 || (selected as any)?.explanation?.summary || (selected as any)?.summary ? (
               <WhyThisRoute
                 title="Why we recommended it"
+                summary={(selected as any)?.explanation?.summary || (selected as any)?.summary}
                 reasons={whyReasons}
+                style={styles.why}
+              />
+            ) : null}
+
+            {destinationTitle ? (
+              <NeighborhoodBriefingCard
+                areaName={destinationTitle}
+                lightingScore={selected?.lightingScore != null ? selected.lightingScore / 100 : 0.7}
+                crimeScore={selected?.safetyScore != null ? 100 - selected.safetyScore : 35}
+                policeDistanceM={320}
                 style={styles.why}
               />
             ) : null}

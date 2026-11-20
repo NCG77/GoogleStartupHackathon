@@ -8,6 +8,7 @@ import {
 } from "@/components/design-system";
 import { DestinationSearchSheet } from "@/components/destination/DestinationSearchSheet";
 import { SafeWalkHeroCard } from "@/components/safewalk/SafeWalkHeroCard";
+import { NeighborhoodBriefingCard } from "@/components/safety/NeighborhoodBriefingCard";
 import { TourAnchor } from "@/components/tour/TourAnchor";
 import { auth } from "@/config/firebase";
 import type { DestinationPlace } from "@/core/destinationSearch";
@@ -455,6 +456,19 @@ export default function HomeDashboard() {
               onOpen={() => router.push("/(tabs)/safewalk" as never)}
             />
           </TourAnchor>
+        </Animated.View>
+
+        <Animated.View
+          entering={FadeInDown.delay(motion.stagger * 2.5).duration(motion.normal)}
+          style={styles.section}
+        >
+          <NeighborhoodBriefingCard
+            areaName="Kurla"
+            lightingScore={0.75}
+            policeDistanceM={280}
+            nearestPoliceName="Kurla Police Beat Box"
+            crimeScore={30}
+          />
         </Animated.View>
 
         <Animated.View

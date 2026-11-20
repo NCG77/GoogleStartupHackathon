@@ -2723,6 +2723,14 @@ View on Map: https://www.google.com/maps/search/?api=1&query=${loc.coordinate.la
               );
             }
           }}
+          onRerouteSafest={() => {
+            if (location?.coords) {
+              void rerouteFrom({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              });
+            }
+          }}
           onReport={() => {
             if (location?.coords) {
               openReviewAt({
