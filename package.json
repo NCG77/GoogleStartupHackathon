@@ -8,6 +8,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "test": "node --experimental-strip-types --test tests/test_gemini_features.ts",
+    "test:gemini": "node --experimental-strip-types --test tests/test_gemini_features.ts",
+    "test:python": "python -m unittest tests/test_gemini_explainer.py",
     "postinstall": "patch-package && node ./scripts/patch-ndk27-cpp-shared.js"
   },
   "dependencies": {
